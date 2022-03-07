@@ -1,2 +1,2 @@
 # Witset
-Analysis of Witset Mark-Recpature data
+Analysis of Witset Mark-Recapture data
