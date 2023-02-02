@@ -486,29 +486,6 @@ ggplot()+
   facet_wrap(~year)
 
 
-witsetCH <- read_excel("QueryCH.xlsx") %>% 
-  mutate(year = year(Sample_Date),
-         tag.col = substr(AppliedColor,1,1),
-         new.tag = ifelse(is.na(tag.col),NA,
-                          paste0(tag.col,"-",AppliedTagNumber))) %>% 
-  mutate(recap.col = substr(`Recaptured Color`,1,1),
-         recap.tag = ifelse(is.na(recap.col),NA,
-                            paste0(recap.col,"-",`Recaptured number`)))
-str(witsetCH)
-
-# ch.col <- witsetCH %>% 
-#   filter(!is.na(AppliedColor)) %>% 
-#   group_by(year, AppliedColor, Species) %>% 
-#   summarize(n=length(unique(Counter)), 
-#             min.applied.tag.num = min(AppliedTagNumber, na.rm=T), 
-#             max.applied.tag.num = max(AppliedTagNumber, na.rm=T))
-# write.csv(ch.col, "ch.col.csv", row.names = F)
-
-
-
-
-
-
 # OLD REQUESTS/ANALYSIS ####
 
 # witsetSK.raw2022 <- witset.raw %>% 
