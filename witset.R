@@ -2,7 +2,7 @@
 #QA and analysis
 
 # Author: Kristen Peck
-# Created: fall 2021, updated Fall/winter 2022
+# Created: fall 2021, updated Fall/winter 2022/23
 
 library(tidyverse)
 library(ggplot2)
@@ -10,7 +10,7 @@ library(readxl)
 library(lubridate)
 library(recapr)
 
-# load exported tables for Dates, SK, CO, CH, ST
+# load exported tables for Dates, SK, CO, CH, and ST
 # note that these are the unaltered tables exported as-is from 
 # Witset_Fish_Tagging_Data_V2_MASTER.accdb
 
@@ -44,13 +44,13 @@ unique(witset.raw$AppliedColor)
 
 witset <- witset.raw %>% 
   mutate(tag.col=recode(AppliedColor,Orange="o",yellow="y",White="w",
-                        Yellow="y",Green="g",`Light Green`="lt.g",
-                        `Light Orange`="lt.o",Pink="p",`Lime Green`="lt.g",
+                        Yellow="y",Green="g",`Light Green`="g",
+                        `Light Orange`="lt.o",Pink="p",`Lime Green`="g",
                         Blue="b",Red="r")) %>% 
   mutate(recap.col=recode(`Recaptured Color`,Orange="o",yellow="y",
                           White="w",Yellow="y",Green="g",
-                          `Light Green`="lt.g",`Light Orange`="lt.o",
-                          Pink="p",`Lime Green`="lt.g",Blue="b",Red="r")) %>%
+                          `Light Green`="g",`Light Orange`="lt.o",
+                          Pink="p",`Lime Green`="g",Blue="b",Red="r")) %>%
   mutate(year = year(Sample_Date),
          new.tag = ifelse(is.na(tag.col)&is.na(AppliedTagNumber),NA,
                           paste0(tag.col,"-",AppliedTagNumber))) %>% 
@@ -59,6 +59,10 @@ witset <- witset.raw %>%
 str(witset)
 unique(witset$tag.col)
 witset[which(witset$tag.col %in% "Grey"),c("Sample_Date", "Counter", "Species")]
+
+grep("66501",x = witset$AppliedTagNumber)
+
+
 
 #how many new records per year?
 print.data.frame(witset %>% 
@@ -71,28 +75,141 @@ print.data.frame(witset %>%
 
 yr.select <- 2022
 
-#how many fish recapped at campground?
-witset %>% 
-  filter(year %in% yr.select, Location_Code %in% "Campground") %>% 
-  filter(TagStatus %in% c("AR","R")) %>% 
-  group_by(Species) %>%
-  summarize(length(Species))
-  
+  ##### Fallback ####
 
-#how many of those fish were marked at the canyon?
-newtags.canyon <- witset %>% 
-  filter(year %in% yr.select, Location_Code %in% "Canyon") %>% 
-  summarize(uniq.tags=unique(AppliedTagNumber))
-witset %>% 
-  filter(year %in% yr.select, Location_Code %in% "Campground") %>% 
+#how many fish recapped at campground?
+(total.camp.recaps <- witset %>% 
+  filter(Location_Code %in% "Campground") %>% 
   filter(TagStatus %in% c("AR","R")) %>% 
-  filter(`Recaptured number` %in% newtags.canyon$uniq.tags) %>% 
-  group_by(Species) %>% 
-  summarize(length(Species))
+  group_by(year, Species) %>%
+  summarize(recaps.camp = length(Species)))
+
+#get list of unique tags applied at campground and canyon:
+newtags.camp <- witset %>% 
+  filter(Location_Code %in% "Campground") %>%
+  group_by(year, Species) %>% 
+  summarize(uniq.tags=na.omit(unique(AppliedTagNumber))) %>% #removed NAs
+  mutate(uniq.yrtags = paste0(year,Species,uniq.tags)) 
+
+newtags.canyon <- witset %>% 
+  filter(Location_Code %in% "Canyon") %>%
+  group_by(year, Species) %>% 
+  summarize(uniq.tags=na.omit(unique(AppliedTagNumber))) %>% #removed NAs
+  mutate(uniq.yrtags = paste0(year,Species,uniq.tags)) 
+
+# how many new tags applied at campground?
+total.newtags.camp <- newtags.camp %>% 
+  group_by(year, Species) %>% 
+  summarize(camp.applied = length(Species))
+
+# how many new tags applied at canyon?
+total.newtags.canyon <- newtags.canyon %>% 
+  group_by(year, Species) %>% 
+  summarize(canyon.applied = length(Species))
+
+#how many of the recaps in camp were marked at the canyon 
+# (i.e. fellback below canyon)?
+
+#get list of unique fish tagged at canyon and recapped at campground:
+fallback.fish <- witset %>% 
+  filter(Location_Code %in% "Campground") %>% 
+  filter(TagStatus %in% c("AR","R")) %>% 
+  mutate(uniq.yrtags = paste0(year,Species,`Recaptured number`)) %>% 
+  filter(uniq.yrtags %in% newtags.canyon$uniq.yrtags) 
+
+#how many total fallbacks?
+fallback <- fallback.fish %>%   
+  group_by(year, Species) %>% 
+  summarize(canyon.fallback = length(Species))
+
+#how many fallbacks were again recaptured at the canyon?
+fallbacks.recap.canyon <- witset %>% 
+  filter(Location_Code %in% "Canyon") %>% 
+  filter(TagStatus %in% c("AR","R")) %>% 
+  mutate(uniq.yrtags = paste0(year,Species,`Recaptured number`)) %>% 
+  filter(uniq.yrtags %in% fallback.fish$uniq.yrtags) %>% 
+  group_by(year, Species) %>% 
+  summarize(fallbacks.recap.canyon= length(Species))
+
+#how many fish were marked at campground and recapped at canyon?
+# This could be considered the expected percentage return for fallback fish
+camptocanyon.recaps <- witset %>% 
+  filter(Location_Code %in% "Canyon") %>% 
+  filter(TagStatus %in% c("AR","R")) %>% 
+  mutate(uniq.yrtags = paste0(year,Species,`Recaptured number`)) %>% 
+  filter(uniq.yrtags %in% newtags.camp$uniq.yrtags) %>% 
+  group_by(year, Species) %>% 
+  summarize(camptocanyon.recaps = length(Species))
+
+
+
+
+#combine into table
+table.fallback <- total.newtags.camp %>% 
+  full_join(total.newtags.canyon) %>% 
+  full_join(total.camp.recaps) %>% 
+  full_join(fallback) %>% 
+  mutate(percent.canyon.fallback = round(canyon.fallback/canyon.applied*100,1)) %>% 
+  full_join(fallbacks.recap.canyon) %>% 
+  mutate(percent.fallbacks.reascend = round(fallbacks.recap.canyon/canyon.fallback*100,1)) %>%
+  full_join(camptocanyon.recaps) %>% 
+  mutate(percent.camptocanyon = round(camptocanyon.recaps/camp.applied*100,1)) %>% 
+  filter(Species %in% c("SK","CO","ST")) %>% 
+  arrange(year, Species)
+
+
+plot.fallback <- ggplot(table.fallback)+
+  geom_line(aes(x=year, y=percent.canyon.fallback, col=Species), size= 1.5)+
+  scale_x_continuous(breaks=seq(min(table.fallback$year),
+                                max(table.fallback$year),1))+
+  labs(x="Year",y="% Fallback from Canyon to Campground")
+plot.fallback
+
+
+plot.fallbackreascend <- ggplot(table.fallback)+
+  geom_line(aes(x=year, y=percent.fallbacks.reascend, col=Species), size=1.5)+
+  geom_line(aes(x=year, y=percent.camptocanyon, col=Species), linetype="dashed")+
+  scale_x_continuous(breaks=seq(min(table.fallback$year),
+                                max(table.fallback$year),1))+
+  labs(x="Year", y="% Fallback recapped at Canyon \nCompared to % of Camp recapped at Canyon")
+plot.fallbackreascend
+
+
+
+
+##### Repeat recaps ####
+
+#how many fish recaptured repetitively?
+repeat.captures <- witset %>% 
+  filter(!is.na(`Recaptured number`), Species %in% c("SK","CO","ST")) %>% 
+  mutate(uniq.yrtags = paste0(year,Species,`Recaptured number`)) %>% 
+  group_by(year, Species,uniq.yrtags, Location_Code) %>% 
+   summarize(number.recaps = length(uniq.yrtags)) %>% 
+   filter(number.recaps >1) %>% 
+  arrange(year,Species,desc(number.recaps))
+  
+table(repeat.captures[,c("year", "Species", "number.recaps")])
+
+plot.camp.recaps <- ggplot(repeat.captures[which(repeat.captures$Location_Code %in% "Campground"),c("year", "Species", "number.recaps")])+
+  geom_histogram(aes(x=as.factor(number.recaps), fill=Species), stat="count")+
+  facet_wrap(~year)+
+  labs(title = "Campground recaps", x= "# recaps", y= "# fish recaptured X times in season")
+plot.camp.recaps
+
+plot.canyon.recaps <- ggplot(repeat.captures[which(repeat.captures$Location_Code %in% "Canyon"),c("year", "Species", "number.recaps")])+
+  geom_histogram(aes(x=as.factor(number.recaps), fill=Species), stat="count")+
+  facet_wrap(~year)+
+  labs(title = "Canyon recaps", x= "# recaps", y= "# fish recaptured X times in season")
+plot.canyon.recaps
+  
 #in 2021, 116 SK were recapped at campground, 40 of which were 
 #   tagged at the canyon (33%)
 #in 2022, 153 fish recapped at campground (126 CO,24 SK,3 ST), 
 # 11 SK (46%) and 46 CO (37%) of which were tagged at the canyon
+
+
+
+
 
 
 
@@ -423,40 +540,32 @@ tobog %>%
             hatchery.origin = length(which(mark_gender %in% c("af","am","aj"))),
             wild.origin = length(which(mark_gender %in% c("wf","wm","wj"))),
             witset.tag = length(which(!is.na(recap_tag_number))))
-
-# prelim.summary.CO <- read_excel("moricetown sockeye tagging estimates_v3.xlsx",
-# sheet = "COKP")
-# 
-# LP.CO <- prelim.summary.CO %>% 
-#   mutate(ChapmanMR = NChapman(esttags,Toboggan.catch,
-#                               Toboggan.recaps)) %>% 
-#   mutate(ChapmanVar = vChapman(esttags,Toboggan.catch,
-#                                Toboggan.recaps)) %>% 
-#   mutate(ChapmanSE = seChapman(esttags,Toboggan.catch,
-#                                Toboggan.recaps)) %>% 
-#   mutate(Chapman95CI = ChapmanSE*1.965)
-# names(prelim.summary.CO)
+tobog.tags <- tobog %>% 
+  filter(!is.na(recap_tag_number))
 
 #old datasheet:
 #now line up with Toboggan Creek recaps
-tobog.tags.raw <- read_csv("Toboggan.tagrecoveries.2018-2021.csv",
-                              na = "NA")
+# tobog.tags.raw <- read_csv("Toboggan.tagrecoveries.2018-2021.csv",
+#                               na = "NA")
+# tobog.tags <- tobog.tags.raw %>% 
+#   filter(!is.na(tag)) %>% 
+#   mutate(year = year(Date),tob.tag = tag, tob.date = Date) %>% 
+#   select(year, tob.date, tob.tag)
 
-tobog.tags <- tobog.tags.raw %>% 
-  filter(!is.na(tag)) %>% 
-  mutate(year = year(Date),tob.tag = tag, tob.date = Date) %>% 
-  select(year, tob.date, tob.tag)
+witsetCO <- witset %>% 
+  filter(Species %in% "CO")
 
 tag.match1 <- tobog.tags %>%
-  left_join(witsetCO, by= c("year","tob.tag" = "AppliedTagNumber")) %>% 
-  select(tob.date,tob.tag, Sample_Date, Location_Code, new.tag)
+  left_join(witsetCO, by= c("year","recap_tag_number" = "AppliedTagNumber")) %>% 
+  select(date,recap_tag_number, Sample_Date, Location_Code, new.tag)
 tag.match2 <- tobog.tags %>%
-  left_join(witsetCO, by= c("year","tob.tag" = "Recaptured number")) %>% 
-  select(tob.date,tob.tag, Sample_Date, Location_Code, recap.tag)
+  left_join(witsetCO, by= c("year","recap_tag_number" = "Recaptured number")) %>% 
+  select(date,recap_tag_number, Sample_Date, Location_Code, recap.tag)
 
 tag.match1 %>% 
   filter(is.na(new.tag))
 #18 recovered tags at toboggan between 2018 and 2021 have no match at witset
+#update: back to 2014, there are now 77 tags from Toboggan that are not in Witset DB
 
 recap.col <- tag.match2 %>% 
   filter(!is.na(recap.tag)) %>% 
