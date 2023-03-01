@@ -28,7 +28,7 @@ witset.raw <- rbind (witsetSK.raw,witsetCO.raw,witsetCH.raw,
                      witsetST.raw) %>% 
   left_join(witset.dates.raw, by="Sample_Id")
 
-
+str(witset.raw)
 
 #### QA/QC ####
 
@@ -71,7 +71,7 @@ print.data.frame(witset %>%
 
 
 
-#QA by year####
+##### QA by year####
 
 yr.select <- 2022
 
@@ -168,10 +168,12 @@ plot.fallback
 
 plot.fallbackreascend <- ggplot(table.fallback)+
   geom_line(aes(x=year, y=percent.fallbacks.reascend, col=Species), size=1.5)+
+  geom_point(aes(x=year, y=percent.fallbacks.reascend, col=Species, size=fallbacks.recap.canyon))+
   geom_line(aes(x=year, y=percent.camptocanyon, col=Species), linetype="dashed")+
   scale_x_continuous(breaks=seq(min(table.fallback$year),
                                 max(table.fallback$year),1))+
-  labs(x="Year", y="% Fallback recapped at Canyon \nCompared to % of Camp recapped at Canyon")
+  labs(x="Year", y="% Fallback recapped at Canyon \nCompared to % of Camp recapped at Canyon",
+       size="# fallbacks\nrecapped at canyon")
 plot.fallbackreascend
 
 
@@ -193,13 +195,13 @@ table(repeat.captures[,c("year", "Species", "number.recaps")])
 plot.camp.recaps <- ggplot(repeat.captures[which(repeat.captures$Location_Code %in% "Campground"),c("year", "Species", "number.recaps")])+
   geom_histogram(aes(x=as.factor(number.recaps), fill=Species), stat="count")+
   facet_wrap(~year)+
-  labs(title = "Campground recaps", x= "# recaps", y= "# fish recaptured X times in season")
+  labs(title = "Campground recaps", x= "# of times recaptured", y= "# individuals")
 plot.camp.recaps
 
 plot.canyon.recaps <- ggplot(repeat.captures[which(repeat.captures$Location_Code %in% "Canyon"),c("year", "Species", "number.recaps")])+
   geom_histogram(aes(x=as.factor(number.recaps), fill=Species), stat="count")+
   facet_wrap(~year)+
-  labs(title = "Canyon recaps", x= "# recaps", y= "# fish recaptured X times in season")
+  labs(title = "Canyon recaps", x= "# of times recaptured", y= "# individuals")
 plot.canyon.recaps
   
 #in 2021, 116 SK were recapped at campground, 40 of which were 
@@ -214,7 +216,7 @@ plot.canyon.recaps
 
 
 #what is the ave/longest time between tagging and recapture? TBD
-
+# Carl looked at this with the BTSPAS groupings
 
 
 #are there any duplicate new tag numbers within yr select? 
@@ -250,7 +252,7 @@ tmp <- witset %>%
 #there are 10 recaptures without a matching tag number in 2021 CO
 # most fixed, but B-53949 is an A2 (to fix)
 # Could not solve remaining orphan recaps at campground in 2022 (4)
-# Try for canyon orphans...
+# Resolved CO canyon orphans in 2022 
 
 
 #how many new tag numbers with no colour?
@@ -299,7 +301,7 @@ witset %>%
 
 
 # ###
-#### SOCKEYE ####
+#### Nanika data ####
 # ###
 
 nanikaswim <- read_excel("NanikaSnorkel.xlsx") %>% 
@@ -329,12 +331,13 @@ SKbylocation
 
 
 
-  
-#### SK Witset MR ####
+# # # # # # # # # # # #
+#### SK Estimates ####
+# # # # # # # # # # # #
 
 #get closed LP estimate (with Chapman mod) from fish tagged at
 #the campground then recaptured at the canyon. Assume no tags lost
-# (i.e. no fallback below study area or deaths between camp and canyon)
+# (i.e. no fallback below study area)
 #year.select <- 2022
 
 markedcampground <- witset %>% 
@@ -454,9 +457,9 @@ plot.SK.daily
 
 
 
-# # # # # # # # #
-###### COHO #####
-# # # # # # # # #
+# # # # # # # # # # # # # 
+#### COHO  Estimates ####
+# # # # # # # # # # # # # 
 
 # look at total harvested, tagged, and recaptured by year
 (COtotals <- witset %>% 
@@ -525,7 +528,7 @@ plot.CO.daily
 
 
 
-#### Toboggan ####
+#### Toboggan data ####
 
 # Quick LP estimate
 
@@ -563,9 +566,16 @@ tag.match2 <- tobog.tags %>%
   select(date,recap_tag_number, Sample_Date, Location_Code, recap.tag)
 
 tag.match1 %>% 
-  filter(is.na(new.tag))
+  filter(is.na(new.tag)) %>% 
+  arrange(desc(date))
 #18 recovered tags at toboggan between 2018 and 2021 have no match at witset
 #update: back to 2014, there are now 77 tags from Toboggan that are not in Witset DB
+# fixed 10 of these so far, 67 remain
+tag.match1 %>% 
+  filter(is.na(new.tag)) %>% 
+  group_by(year(date)) %>% 
+  summarize(orphans = length(recap_tag_number))
+
 
 recap.col <- tag.match2 %>% 
   filter(!is.na(recap.tag)) %>% 
@@ -595,7 +605,360 @@ ggplot()+
   facet_wrap(~year)
 
 
-# OLD REQUESTS/ANALYSIS ####
+#### REPORTING ####
+# From other script- integrate
+#### effort and catch summary table ####
+
+effort.table <- allsalmon %>% 
+  group_by(year, Location_Code) %>% 
+  summarize(first=min(date), last=max(date), ndays=length(unique(date)),
+            days.between = yday(last)-yday(first), totCO = length(which(Species %in% "CO")),
+            totSK = length(which(Species %in% "SK")), 
+            totCH = length(which(Species %in% "CH"))) %>% 
+  mutate(first.fake.date = as_date(yday(first), origin=ymd("2021-01-01")),
+         last.fake.date = as_date(yday(last), origin=ymd("2021-01-01")))
+
+(salmon.table <- allsalmon %>% 
+    group_by(year, Location_Code, Species) %>% 
+    summarize(`Total Caught` = length(Species)) %>% 
+    pivot_wider(names_from = Location_Code,values_from =`Total Caught` ))
+
+
+table1 <- effort.table %>% 
+  select(Year=year, Location = Location_Code, First= first, 
+         Last=last, `Total Days Fished`=ndays,SK=totSK, CH=totCH, CO=totCO) %>% 
+  gt(groupname_col = NULL) %>% 
+  fmt_date(columns = c(First,Last), date_style = 9) 
+table1
+
+#gtsave(table1, filename="tabletiming.rtf")
+
+
+#trends in catch per day
+
+plot.COperday.loess <- ggplot(data = effort.table)+
+  geom_point(aes(x=year, y=totCO/ndays, col=Location_Code),  size=2)+
+  geom_smooth(aes(x=year, y=totCO/ndays, col=Location_Code),method = "loess",se = F)+
+  labs(x= "", y="Coho per day", title="A. Coho")+
+  scale_x_continuous(breaks = seq(2012, 2021, 1))+
+  theme(legend.position = "bottom")
+plot.COperday.loess
+
+#statistics - trend in catch/day?
+
+effort.table[effort.table$year >=2017,]
+
+(sum.COglm <- summary(glm(data = effort.table, formula=totCO ~ year+Location_Code,
+                          family = "poisson")))
+(sum.SKglm <- summary(glm(data = effort.table, formula=totSK ~ year+Location_Code,
+                          family = "poisson")))
+summary(glm(data = effort.table[effort.table$year >=2017,], formula=totCH ~ year+Location_Code,
+            family = "poisson"))
+#summary table for coho GLM:
+table.COglm <- sum.COglm$coeff %>% 
+  gt(groupname_col = NULL) 
+gtsave(table.COglm, filename="table.COglm.rtf")
+#summary table for sockeye GLM:
+table.SKglm <- sum.SKglm$coeff %>% 
+  gt(groupname_col = NULL) 
+gtsave(table.SKglm, filename="table.SKglm.rtf")
+
+
+plot.COperday.lm <- ggplot(data = effort.table)+
+  geom_point(aes(x=year, y=totCO/ndays, col=Location_Code),  size=2)+
+  geom_smooth(aes(x=year, y=totCO/ndays, col=Location_Code),method = "lm",se = F)+
+  labs(x= "", y="Coho per day", title="A. Coho")+
+  scale_x_continuous(breaks = seq(2012, 2021, 1))+
+  theme(legend.position = "none")
+plot.COperday.lm
+
+
+
+plot.SKperday <- ggplot(data = effort.table)+
+  geom_point(aes(x=year, y=totSK/ndays, col=Location_Code),  size=2)+
+  geom_smooth(aes(x=year, y=totSK/ndays, col=Location_Code),method = "loess",se = F)+
+  labs(x= "", y="Sockeye per day", col="Location", title="B. Sockeye")+
+  scale_x_continuous(breaks = seq(2012, 2021, 1))+
+  theme(legend.position = "none")
+plot.SKperday
+
+plot.CHperday <- ggplot(data = effort.table)+
+  geom_point(aes(x=year, y=totCH/ndays, col=Location_Code),  size=2)+
+  #geom_smooth(aes(x=year, y=totCH/ndays, col=Location_Code),method = "loess", se=F)+
+  labs(y="Chinook per day", col="Location", title="C. Chinook")+
+  scale_x_continuous(breaks = seq(2012, 2021, 1))+
+  theme(legend.position = "bottom")
+plot.CHperday
+
+plot.catchperday <- arrangeGrob(plot.COperday, plot.SKperday, plot.CHperday)
+plot(plot.catchperday)
+
+#ggsave(plot=plot.catchperday , 
+#       filename = "catchperday.png", device = "png", width = 6.5, height=6)
+
+
+# plot of seasonal timing and catch
+
+plot.timing <- ggplot(data=allsalmon)+
+  geom_histogram(aes(x=fake.date, fill=Species),binwidth = 2)+
+  # geom_text(data=effort.table.camp, aes(label=paste("a.",ndays, "days"), x=ymd("2021-10-01"),
+  #                                      y=1550), size=2.25)+
+  #  geom_text(data=effort.table.can, aes(label=paste("b.",ndays, "days"), x=ymd("2021-10-01"),
+  #                                    y=1300),size=2.25, col="purple")+
+  facet_wrap(~year)+
+  labs(x="",y="# salmon")
+plot.timing
+
+#ggsave(plot = plot.timing, filename = "timing2012-2021.png", width = 6.5, height=4,
+#        device = "png")
+
+#### size diff harvested and tagged fish ####
+
+(sizes <- allsalmon %>%
+   filter(ForkLength <120) %>% 
+   mutate(TagStatus = ifelse(TagStatus %in% c("A","AR","A2", "R"), "Yes","No")) %>% 
+   mutate(tag.harvest = paste0(TagStatus,".",Harvested)) %>% 
+   #mutate(tag.harvest = ifelse(TagStatus %in% "No" & Harvested %in% "True", "harvested",
+   #                             ifelse(TagStatus %in% "No" & Harvested %in% "False", "not harvested",
+   #                                   ifelse(TagStatus %in% "Yes", "tagged", NA)))) %>% 
+   #group_by(year, Species, Location_Code, Harvested, TagStatus) %>% 
+   #summarize(ave.FL = mean(ForkLength, na.rm=T), min.FL=min(ForkLength, na.rm=T),
+   #          max.FL=max(ForkLength, na.rm=T)) %>% 
+   filter(tag.harvest %in% c("No.FALSE", "No.TRUE", "Yes.FALSE")) %>% 
+   mutate(Tag.Harvest = ifelse(tag.harvest %in% "No.FALSE", "Released",
+                               ifelse(tag.harvest %in% "No.TRUE", "Harvested",
+                                      ifelse(tag.harvest %in% "Yes.FALSE", "Tagged",NA)))) %>% 
+   arrange(Species, year,Location_Code, Harvested))
+
+sizes.CO.df <- sizes %>%
+  filter(Species %in% "CO")
+
+ggplot(sizes.CO.df)+
+  geom_histogram(aes(x=ForkLength, fill=Tag.Harvest), binwidth=5, col="black")+
+  facet_wrap(~year)
+
+plot.forklengthCO <- ggplot(sizes.CO.df)+
+  geom_boxplot(aes(x=ForkLength, fill=Tag.Harvest), varwidth = T)+
+  facet_wrap(~year)+
+  theme(legend.position =  c(0.75,0.15),
+        axis.text.y = element_blank())+
+  labs(title = "A. Coho", fill="")+
+  scale_fill_discrete(breaks=c("Tagged","Released","Harvested"))
+plot.forklengthCO
+
+ggsave(plot=plot.forklengthCO, 
+       filename = "plot.forklengthCO.png", device = "png", width = 12, height=9.4)
+
+
+
+sizes.SK.df <- sizes %>%
+  filter(Species %in% "SK")
+
+ggplot(sizes.SK.df)+
+  geom_histogram(aes(x=ForkLength, fill=Tag.Harvest), binwidth=5,  
+                 position = "dodge")+
+  facet_wrap(~year)
+
+plot.forklengthSK <- ggplot(sizes.SK.df)+
+  geom_boxplot(aes(x=ForkLength, fill=Tag.Harvest),varwidth = T)+
+  facet_wrap(~year)+
+  theme(legend.position =  c(0.75,0.15),
+        axis.text.y = element_blank())+
+  labs(title = "B. Sockeye",  fill="")+
+  scale_fill_discrete(breaks=c("Tagged","Released","Harvested"))
+plot.forklengthSK
+
+ggsave(plot=plot.forklengthSK, 
+       filename = "plot.forklengthSK.png", device = "png", width = 12, height=9.4)
+
+
+sizes.CH.df <- sizes %>%
+  filter(Species %in% "CH")
+
+ggplot(sizes.CH.df)+
+  geom_histogram(aes(x=ForkLength, fill=Harvested), binwidth=2)+
+  facet_wrap(~year)
+
+plot.forklengthCH <- ggplot(sizes.CH.df)+
+  geom_boxplot(aes(x=ForkLength, fill=Tag.Harvest))+
+  facet_wrap(~year)+
+  theme(legend.position = "bottom",
+        axis.text.y = element_blank())+
+  labs(title = "C. Chinook", x="Fork Length (cm)")+
+  scale_fill_discrete(breaks=c("Tagged","Released","Harvested"))
+plot.forklengthCH
+
+ggsave(plot=plot.forklengthCH, 
+       filename = "plot.forklengthCH.png", device = "png", width = 12, height=9.4)
+
+
+plot.forklength <- arrangeGrob(plot.forklengthCO, plot.forklengthSK, 
+                               plot.forklengthCH)
+plot(plot.forklength)
+
+
+#ggsave(plot=plot.forklength, 
+#       filename = "plot.forklength.png", device = "png", width = 6.5, height=9.4)
+
+
+#### environmental data - flow ####
+
+#download_hydat()
+
+bulkley.flow.raw <- hy_daily_flows(station_number = "08EE005") %>% 
+  mutate(year = year(Date),yday = yday(Date), 
+         fake.date=as_date(yday, origin = ymd("2021-01-01")))
+unique(bulkley.flow.raw$year)
+#this station seems to have been non-operational before 2008 so we can't really 
+# do much in the way of comparison by decade
+
+# ave.bulkley.flow <- bulkley.flow.raw %>% 
+#   filter(year %in% 1991:2021) %>% 
+#   mutate(decade = ifelse(year %in% 1991:2000, "1991:2000",
+#                          ifelse(year %in% 2001:2010, "2001:2010", "2011:2021"))) %>% 
+#   group_by(decade, fake.date) %>% 
+#   summarize(ave.daily = mean(Value, na.rm=T), sd.daily = sd(Value, na.rm=T)) %>% 
+#   mutate(lower.sd = ifelse(ave.daily-sd.daily<0, 0, ave.daily-sd.daily),
+#          upper.sd = ave.daily+sd.daily)
+# ave.bulkley.flow
+
+
+ave.bulkley.flow <- bulkley.flow.raw %>%
+  filter(year %in% 2008:2021) %>%
+  group_by(fake.date) %>%
+  summarize(ave.daily = mean(Value, na.rm=T), sd.daily = sd(Value, na.rm=T)) %>%
+  mutate(lower.sd = ifelse(ave.daily-sd.daily<0, 0, ave.daily-sd.daily),
+         upper.sd = ave.daily+sd.daily)
+ave.bulkley.flow
+
+ggplot()+
+  geom_ribbon(data=ave.bulkley.flow, 
+              aes(x=fake.date, ymin=lower.sd, ymax=upper.sd),alpha=.5)
+
+bulkley.flow <- bulkley.flow.raw %>% 
+  filter(Date %in% ymd("2012-01-01"):ymd("2021-12-31")) %>% 
+  filter(fake.date >= ymd("2021-07-01")& fake.date < ymd("2021-11-01"))
+
+
+plot.bulkley.flow <- ggplot(bulkley.flow)+
+  geom_line(aes(x=fake.date, y=Value, col=as_factor(year)), size=1.5)+
+  labs(x="Date", y="Discharge (m^3/s, station 08EE005)", col="")+
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%b-%d")
+plot.bulkley.flow
+
+#ggsave(plot= plot.bulkley.flow, filename = "plot.bulkley.flow.png", 
+#       height = 4, width = 6.5, device = "png")
+
+plot.bulkley.start <- ggplot()+
+  geom_ribbon(data=ave.bulkley.flow, 
+              aes(x=fake.date, ymin=lower.sd, ymax=upper.sd),alpha=.5)+
+  geom_line(data = bulkley.flow, aes(x=fake.date, y=Value), size=1)+
+  geom_vline(data = effort.table[effort.table$year <2023,], 
+             aes(xintercept = first.fake.date,col=Location_Code, linetype = Location_Code), 
+             size=1.5,alpha=.5)+
+  geom_vline(data = effort.table[effort.table$year <2023,], 
+             aes(xintercept = last.fake.date,col=Location_Code, linetype = Location_Code), 
+             size=1.5,alpha=.5)+
+  geom_hline(data = bulkley.flow, aes(yintercept = 310), size=.5, col="black")+
+  facet_wrap(~ year)+
+  labs(x="Date", y="Discharge (m^3/s, station 08EE005)", col="Location",
+       linetype="Location")+
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%b-%d", 
+               limits = c(ymd("2021-07-01"),ymd("2021-10-31")))+
+  theme(axis.text.x = element_text(angle=45, hjust=1),
+        legend.position = c(0.75, 0))
+plot.bulkley.start
+
+ggsave(plot= plot.bulkley.start, filename = "plot.flow.startend.png", 
+       height = 4, width = 6.5, device = "png")
+
+# caught per day by flow
+
+plot.timing.flow <- ggplot()+
+  geom_histogram(data=allsalmon, aes(x=fake.date, fill=Species),binwidth = 1)+
+  geom_line(data = bulkley.flow, aes(x=fake.date, y=Value), alpha = 0.25, size=1)+
+  facet_wrap(~year)+
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%b-%d", 
+               limits = c(ymd("2021-07-02"),ymd("2021-10-20")))+
+  theme(axis.text.x = element_text(angle=45, hjust=1),
+        legend.position = c(0.75, 0.1),
+        legend.direction = "horizontal")+
+  labs(x="",y="# salmon")
+plot.timing.flow
+
+ggsave(plot=plot.timing.flow, filename="plot.timing.flow.png", height = 6, 
+       width=6.5, device = "png")
+
+
+range(allsalmon$fake.date)
+
+#investigate constant sample proportion
+# any harvested tagged fish?
+# ave time to recapture fish between witset sites and toboggan?
+
+
+
+
+
+
+
+
+
+
+# # OLD REQUESTS/ANALYSIS ####
+# 
+# 
+# health <- witset.raw %>% 
+#   mutate(year = year(Sample_Date)) %>% 
+#   group_by(Species, year) %>% 
+#   summarize(scale.loss = length(which(`Scale loss` %in% TRUE)),
+#             bite.marks = length(which(`bite marks` %in% TRUE)),
+#             net.marks = length(which(`Net marks` %in% TRUE)),
+#             bleeding.gills = length(which(`Bleeding gills` %in% TRUE)),
+#             cyst= length(which(Cyst %in% TRUE)),
+#             torn.tails = length(which(`Torn tail` %in% TRUE)),
+#             torn.fin = length(which(`Torn fin` %in% TRUE)),
+#             fungus = length(which(Fungus %in% TRUE)),
+#             sea.lice = length(which(`sea lice` %in% TRUE)),
+#             tot.species = length(Species)) %>% 
+#   arrange(year, Species)
+# 
+# 
+# 
+# #write_csv(health, "health.csv")
+# 
+# ggsave(plot=ggplot(health)+
+#          geom_line(aes(x=year, y=sea.lice/tot.species*100, col= Species))+
+#          scale_x_continuous(breaks = seq(min(health$year),max(health$year),1))+
+#          labs(x="year", y=paste("% sea lice")),filename = "sea.lice.png",width=6,
+#        height=4) 
+# 
+# ggsave(plot=ggplot(health)+
+#          geom_line(aes(x=year, y=scale.loss/tot.species*100, col= Species))+
+#          scale_x_continuous(breaks = seq(min(health$year),max(health$year),1))+
+#          labs(x="year", y="% scale loss"),filename = "scale.loss.png",width=6,
+#        height=4) 
+# 
+# ggsave(plot=ggplot(health)+
+#          geom_line(aes(x=year, y=bite.marks/tot.species*100, col= Species))+
+#          scale_x_continuous(breaks = seq(min(health$year),max(health$year),1))+
+#          labs(x="year", y="% bite marks"),filename = "bite.marks.png",width=6,
+#        height=4) 
+# 
+# ggsave(plot=ggplot(health)+
+#          geom_line(aes(x=year, y=net.marks/tot.species*100, col= Species))+
+#          scale_x_continuous(breaks = seq(min(health$year),max(health$year),1))+
+#          labs(x="year", y="% net marks"),filename = "net.marks.png",width=6,
+#        height=4) 
+# 
+# 
+# ggsave(plot = ggplot(health)+
+#          geom_line(aes(x=year, y=torn.tails/tot.species*100, col= Species))+
+#          scale_x_continuous(breaks = seq(min(health$year),max(health$year),1))+
+#          labs(x="year", y="% torn tail"),filename = "torn.tail.png",width=6,
+#        height=4) 
+
+
 
 # witsetSK.raw2022 <- witset.raw %>% 
 #   filter(Species %in% "SK", year(Sample_Date) %in% "2022")
