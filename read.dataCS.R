@@ -94,7 +94,9 @@ setdiff(sample.dates$Sample_Id, all.fish$Sample_Id)
 setdiff(all.fish$Sample_Id, sample.dates$Sample_Id)
 
 # missing some sample dates
-all.fish <- merge(all.fish, sample.dates, by="Sample_Id", all.x=TRUE)
+all.fish <- merge(all.fish, sample.dates, by="Sample_Id", all.x=TRUE)  %>% 
+  filter(Year >= 2018)
+  
 
 xtabs(~Sample_Id+Species, data=all.fish[ is.na(all.fish$Year),], exclude=NULL, na.action=na.pass)
 
@@ -118,6 +120,7 @@ xtabs(~TagStatus+Location_Code, data=all.fish, exclude=NULL, na.action=na.pass)
 xtabs(~TagStatus+CaudalPunch+Species, data=all.fish, exclude=NULL, na.action=na.pass)
 
 xtabs(~CaudalPunch+Year+Species, data=all.fish, exclude=NULL, na.action=na.pass)
+
 xtabs(~CaudalPunch+Year, data=all.fish, exclude=NULL, na.action=na.pass)
 
 
@@ -190,38 +193,39 @@ rm(ch.tagged, co.tagged, so.tagged, st.tagged)
 ####################################################################
 ####################################################################
 
-# This was a hand created file used previously
-t.tagrecoveries <- read.csv("Toboggan.tagrecoveries.2018-2021.csv", 
-                            header=TRUE, as.is=TRUE, strip.white=TRUE)
-
-
-t.tagrecoveries$Date <- as.Date(t.tagrecoveries$Date)
-t.tagrecoveries$Year <- lubridate::year(t.tagrecoveries$Date)
-t.tagrecoveries <- plyr::rename(t.tagrecoveries, c("tag"="RecapturedTagNumber"))
-t.tagrecoveries$Species <- "CO"  # need to check this
-head(t.tagrecoveries)
-xtabs(~Year, data=t.tagrecoveries, exclude=NULL, na.action=na.pass)
-
-
-
-# This file has total CO captured (excluding wild and hatchery jacks) and # of marks recaptured
-# The actual marks recaptured are in the previous file
-t.markedunmarked      <- read.csv("Toboggan.total-marked.coho.2018-2021.csv", 
-                                  header=TRUE, as.is=TRUE, strip.white=TRUE)
-t.markedunmarked$Date <- as.Date(t.markedunmarked$Date)
-t.markedunmarked$Year <- lubridate::year(t.markedunmarked$Date)
-t.markedunmarked$Species <- "CO"
-head(t.markedunmarked)
-
-
-# The cross tabulations jive (hurrah)
-xtabs(total.marked~Year, data=t.markedunmarked, exclude=NULL, na.action=na.pass)
-xtabs(~Year, data=t.tagrecoveries, exclude=NULL, na.action=na.pass)
+# # This was a hand created file used previously
+# t.tagrecoveries <- read.csv("Toboggan.tagrecoveries.2018-2021.csv", 
+#                             header=TRUE, as.is=TRUE, strip.white=TRUE)
+# 
+# 
+# t.tagrecoveries$Date <- as.Date(t.tagrecoveries$Date)
+# t.tagrecoveries$Year <- lubridate::year(t.tagrecoveries$Date)
+# t.tagrecoveries <- plyr::rename(t.tagrecoveries, c("tag"="RecapturedTagNumber"))
+# t.tagrecoveries$Species <- "CO"  # need to check this
+# head(t.tagrecoveries)
+# xtabs(~Year, data=t.tagrecoveries, exclude=NULL, na.action=na.pass)
+# 
+# 
+# 
+# # This file has total CO captured (excluding wild and hatchery jacks) and # of marks recaptured
+# # The actual marks recaptured are in the previous file
+# t.markedunmarked      <- read.csv("Toboggan.total-marked.coho.2018-2021.csv", 
+#                                   header=TRUE, as.is=TRUE, strip.white=TRUE)
+# t.markedunmarked$Date <- as.Date(t.markedunmarked$Date)
+# t.markedunmarked$Year <- lubridate::year(t.markedunmarked$Date)
+# t.markedunmarked$Species <- "CO"
+# head(t.markedunmarked)
+# 
+# 
+# # The cross tabulations jive (hurrah)
+# xtabs(total.marked~Year, data=t.markedunmarked, exclude=NULL, na.action=na.pass)
+# xtabs(~Year, data=t.tagrecoveries, exclude=NULL, na.action=na.pass)
 
 # Now the data appears to be in a workbook that I can massage as needed
-t.data <- readxl::read_excel("TobogganFenceData_MASTER-copy1-Feb-2023.xlsx",
+t.data <- readxl::read_excel("TobogganFenceData_MASTER-copy1-Mar-2023.xlsx",
                              sheet='IndividualFish',
-                             .name_repair="universal")
+                             .name_repair="universal") %>% 
+  filter(year >= 2018)
 t.data$date <- as.Date(t.data$date)
 t.data$species <- toupper(t.data$species)
 t.data <- plyr::rename(t.data, c("year"="Year",
@@ -229,16 +233,20 @@ t.data <- plyr::rename(t.data, c("year"="Year",
                                  "species"="Species",
                                  "recap_tag_number"="RecapturedTagNumber"))
 
-t.tagrecoveries.new <- t.data[ !is.na(t.data$RecapturedTagNumber) & t.data$Species %in% c("CO"),c("Date","Year","Species","RecapturedTagNumber")]
+t.tagrecoveries.new <- t.data[!is.na(t.data$RecapturedTagNumber) & 
+                                t.data$Species %in% c("CO"),c("Date","Year","Species","RecapturedTagNumber")]
 
 # do some basic comparisions
-xtabs(~Species+Year, data=t.tagrecoveries,     exclude=NULL, na.action=na.pass)
-xtabs(~Species+Year, data=t.tagrecoveries.new, exclude=NULL, na.action=na.pass)
+# xtabs(~Species+Year, data=t.tagrecoveries,     exclude=NULL, na.action=na.pass)
+xtabs(~Species+Year, data=t.tagrecoveries.new, 
+      exclude=NULL, na.action=na.pass)
 
 # Extract total fish handled
-t.markedunmarked.new.fish      <- t.data[ t.data$Species %in% c("CO") ,c("Date","Year","Species","RecapturedTagNumber")]
+t.markedunmarked.new.fish <- t.data[t.data$Species %in% c("CO"),
+                                    c("Date","Year","Species","RecapturedTagNumber")]
 head(t.markedunmarked.new.fish)
-t.markedunmarked.new <- plyr::ddply(t.markedunmarked.new.fish, c("Date","Year","Species"), plyr::summarize,
+t.markedunmarked.new <- plyr::ddply(t.markedunmarked.new.fish, c("Date","Year","Species"), 
+                                    plyr::summarize,
                                     total.coho=length(Date),
                                     total.marked=sum(!is.na(RecapturedTagNumber)))
 
@@ -254,7 +262,8 @@ t.markedunmarked.new <- plyr::ddply(t.markedunmarked.new.fish, c("Date","Year","
 
 n.counts <- readxl::read_excel("NanikaSnorkel.xlsx", sheet="Sheet1",
                                .name_repair = "universal") %>% 
-  mutate(Species = "SK") #KP addition
+  mutate(Species = "SK") %>% 
+  filter(Year >= 2018) #KP addition
 
 head(n.counts)
 
