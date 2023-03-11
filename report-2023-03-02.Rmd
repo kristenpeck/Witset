@@ -1,0 +1,2744 @@
+---
+title: "Witset Review"
+author: "Carl James Schwarz"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+  pdf_document:
+    keep_tex: no
+    number_sections: yes
+    toc: yes
+    fig_caption: yes
+    extra_dependencies: float
+---
+
+```{r setup, include=FALSE}
+
+library(FSA)
+library(kableExtra)
+library(tidyverse)
+library(readxl)
+library(RMark)
+library(SPAS)
+
+source("read.dataCS.R")
+source("SimplePetersen.R")
+
+set.seed(234324)
+
+```
+
+
+# New in this version
+
+## 2023-03-02
+- limited data to 2018 to 2022
+- removed old Toboggan data chunks
+- updated Nanika data
+
+## 2023-01-30
+
+- Updated database that includes 2022 data
+- Updated workbook for Toboggan Creek that is much easier to use.
+
+## 2022-02-27
+
+- Nanika Creel sockeye counts added in. Not as bad a Toboggan Creek, but the
+combined estimator still seems high. Unable to check tagging date distribution because
+snorkel survey does not have tag numbers.
+
+## 2022-02-16
+
+- Toboggan Creek Coho fence recoveries added in. Something is wrong here because 
+the marked fraction does not increase even though the number of tagged fish tripled
+when additional fish were tagged at the Canyon. Perhaps the Canyon tagging missed
+the window when Coho going to T. Creek passed through the canyon?
+
+## 2022-01-16
+
+- standardize/check the tag color codes and fix in the data base
+- check for fish recaptured before they are released
+- check for fish with tags applied but tag applied field is missing
+- check for recaptured fish, but recaptured tag number is missing.
+- stratified (SPAS) analysis
+
+# Things to fix in database
+
+Here are few notes about potential corrections to the database. Details are in later sections.
+
+- There are cases where tag numbers are recorded without the tag color within a species-year combination. 
+This is likely ok and easily fixable. However, there are cases where the same tag number has a number of 
+similar tag colors, e.g. *light green* and *green*. Are there really two similar colors released in a year?
+
+- CH has a few fish with tags? Perhaps error in database (wrong species?). 
+
+- It doesn't seem possible to use the CH data other than 2018. For example in 2017, there are only two records
+with TagStatus="A" and no tag number or tag colors? Caudal punch seems to be missing in all records as well?
+Need to know the sampling protocols for CH for most years.
+
+- Standardize color names, e.g. "yellow" vs "Yellow"; "Grey" only appears 4 times -- likely a mistake.
+
+- Some fish recaptured before they are tagged
+
+- Database needs some restructuring to account for double tagging, retagging, etc in a uniform fashion.
+I can sketch out a revised design if needed.
+
+# Introduction
+
+## Goals of the project
+
+## Sampling protocol
+
+Generally speaking, the sampling protocol captures and examines fish at two locations, the *Campground* and the *Canyon*.
+Additional sampling takes place at *Toboggan Creek* for Coho Salmon in 2018 to 2021.
+
+Fish are captured at the *Campground*, tagged with individual tag numbers, and released.
+**Additionally a batch mark is applied (e.g., caudal punch)**.
+Some fish are harvested at the *Campground* -- these fish are typically sexed and/or have a size measurement taken.
+A few fish are double tagged -- generally speaking, the number of double tagged fish is small and can be ignored.
+Some of tagged fish could be recaptured at the *Campground*. Additionally, a few fish from previous years (for steelhead)
+could be recaptured at the *Campground*.
+
+## Database structure
+
+The database consists of a series of tables that record information on fish handled. 
+Variables (of interest for this report) in the table include
+
+- Species (*CO* for Coho Salmon; *CH* for Chinook Salmon; *SK* for Sockeye Salmon; and *ST* for steelhead)
+- Location of handling the fish (*Campground* or *Canyon*)
+- Date the fish was handled
+- Tag status code
+- Applied tag color and applied tag number 
+- Tag color and Tag number if a tagged fish is recaptured
+- Sex
+- Fork length
+- Harvested indicator variable
+
+Of particular interest is the tag status code indicating:
+
+- *A* if new tag is applied	
+- *R* if fish has existing tag number (a recaptured fish) either tagged this year or previous years
+- *NA* (missing) - if a fish is handled but no tag applied or not tag present. Typically this indicates a harvest fish,
+but could also occur for a fish that was handled, was too small to tag, and was subsequently released.
+- *AR* a tagged fish was recaptured, and a new tag was applied.
+- *A2* indicating that this is the second record for a fish that is double tagged and records the tag number/color of the second tag.
+
+A separate set of tables contains information on fish handled at *Toboggan Creek* and is described later.
+
+# Data screening of main database
+
+## Missing date of capture
+
+We examined the sampling times (*Sample_Id* variable that links to time/date/location of sampling) 
+to extract the date the event occured. From the extracted date, we obtained the *Year* of event.
+
+We first check to see if any *Sample_ID* for a fish is not present in the *Tag_Data_Sample_Dates* table.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cat("Sample ID present for a fish, but not in the Tag_Data_Sample_Dates table\n")
+temp <- setdiff(all.fish$Sample_Id, sample.dates$Sample_Id)
+temp
+```
+
+There were `r length(temp)` *Sample_ID* on fish not present in the *Tag_Data_Sample_Dates* table.
+
+We now check that each date has a year.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cat("Cross tabulation of missing year by species\n")
+xtabs(~Species+is.na(Year), data=all.fish, exclude=NULL, na.action=na.pass)
+n.missing.year <- sum(is.na(all.fish$Year))
+```
+
+There were `r n.missing.year` fish records with a missing year.
+Any record with a missing year will be deleted.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+xtabs(~Sample_Id+Species, data=all.fish[ is.na(all.fish$Year),], exclude=NULL, na.action=na.pass)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+all.fish <- all.fish[ !is.na(all.fish$Year),]
+```
+
+
+## Location code
+
+Fish were handled in one of two locations - the *Campground* (the "tagging" site) and 
+the *Canyon* (the "recovery" site). The number of fish handed in each year at each location is
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+#xtabs(~Species+Location_Code, data=all.fish, exclude=NULL, na.action=na.pass)
+all.fish$Species.Location <- paste0(all.fish$Species,".",all.fish$Location_Code)
+xtabs(~Year+ Species.Location,    data=all.fish, exclude=NULL, na.action=na.pass)
+```
+
+Virtually no Chinook Salmon were handled from 2012 to 2016 and the number of steelhead handed at the *Campground* in 2019 to 2021
+is very small.
+
+## Location code and tag status
+
+A tabulation of the tag status and the location the fish was handled is:
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+xtabs(~Location_Code+TagStatus, data=all.fish, exclude=NULL, na.action=na.pass)
+```
+
+Tags applied in the *Canyon* are used to estimate movement and abundance upstream of the *Canyon* and so are never used
+in estimating of abundance (except that a fish with a tag applied in the *Canyon* is considered as an "unmarked" fish handled
+at the *Canyon* when constructing the capture histories).
+
+Recaptures of fish in the *Campground* consist of recaptures of tagged fish from the *Campground* and fall back
+from fish tagged in the *Canyon* and not used when constructing capture-histories.
+
+## Double tagged fish
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+xtabs(~Location_Code+TagStatus, data=all.fish, exclude=NULL, na.action=na.pass)
+```
+
+There are a small number of fish double tagged (*TagStatus* A2).
+Double tagging is entered inconsistently in the database and needs to be "repaired". In some cases,
+the *A2* TagStatus code is a second record following the first record for a fish with the first tag number.
+In some cases, both tag numbers are found on the same record for a fish (using the recapture tags number field).
+
+This needs to be standardized with variables *AppliedTagNumber1* and *AppliedTagNumber2* (and the corresponding colors)
+to record multiple tags applied to the same fish. In most cases, the *AppliedTagNumber2* field will be missing.
+
+The number of double tagged fish is too small to estimate tag loss with any precision. 
+
+*REMOVED THIS since fixed A2s-KP*:  I will ignore the second tag when constructing capture-histories, so there may be a few fish which lost tags
+and so would not be counted as a recapture.
+
+A summary of the *TagStatus* after removing *A2* records is:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#all.fish <- all.fish[ !all.fish$TagStatus %in% c("A2"),]
+xtabs(~Species+TagStatus, data=all.fish, exclude=NULL, na.action=na.pass)
+```
+
+A missing *TagStatus* typically indicates a harvested fish.
+
+## Applied/Removed/Recapture tag number
+
+The *RemovedTagNumber* field is never used in the database? **What is its function?**
+
+There are two remaining fields (*AppliedTagNumber* and *RecapturedTagNumber*) in the database that contain a tag number.
+A cross tabulation of when these fields contain a tag number is:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,include=FALSE}
+xtabs(~Year+TagStatus, data=all.fish[all.fish$Species=="CH",], exclude=NULL, na.action=na.pass)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+all.fish$AppliedTagNumberPresent<- !is.na(all.fish$AppliedTagNumber)
+all.fish$RecapturedTagNumberPresent<-!is.na(all.fish$RecapturedTagNumber)
+
+
+tag.num.sum <- as.data.frame(xtabs(~AppliedTagNumberPresent+RecapturedTagNumberPresent, data=all.fish, exclude=NULL, na.action=na.pass))
+tag.num.sum
+```
+
+There are just under 40 fish where both the *AppliedTagNumber* and *RecapturedTagNumber* are both present.
+These fish are:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+select <- all.fish$AppliedTagNumberPresent & all.fish$RecapturedTagNumberPresent
+temp <- all.fish[select, c("Sample_Id","Species","TagStatus","AppliedColor","AppliedTagNumber","RecapturedColor","RecapturedTagNumber")]
+temp <- temp[ order(temp$Species, temp$AppliedTagNumber),]
+temp
+```
+
+A summary of the *TagStatus* of these records is:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+xtabs(~Species+TagStatus, data=all.fish[select,], exclude=NULL, na.action=na.pass)
+```
+
+Many of these records appear double tagged fish where the second tag is listed in the *RecapturedTagNumber* field (*TagStatus* set to *A2*). The remained appear to be recaptures of fish where the old tags was replaced by a new tag (*TagStatus* set to *AR*); and some may be recaptures of double tagged fish (*TagStatus* set to *R*) or fish tagged in previous years (for steelhead).
+
+**The database needed to be corrected to deal with these cases in a more transparent fashion** - KP UPDATE: these have been fixed for recent years
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#all.fish <- all.fish[ !all.fish$TagStatus %in% c("A2"),]
+
+xtabs(~Species+TagStatus, data=all.fish, exclude=NULL, na.action=na.pass)
+```
+
+## Ventral-fin clip
+
+This was used for a handful of fish.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+xtabs(~VentralClip+Species,     data=all.fish, exclude=NULL, na.action=na.pass)
+xtabs(~VentralClip+Year,        data=all.fish, exclude=NULL, na.action=na.pass)
+xtabs(~VentralClip+CaudalPunch, data=all.fish, exclude=NULL, na.action=na.pass)
+```
+
+From KP
+
+> This is one we’ll have to ask the sampling crew about. 
+> Just looking at the data, the marked recaps with this checked off do not seem
+> to have it checked off on their initial capture, so it was either added when 
+> recapped or not used in any consistent way. 
+> It is not on the current datasheets, and I’d ignore this mark for now until 
+> we can figure out why it was used in the past.
+
+This field will be ignored.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+all.fish$VentralClip<- NULL
+```
+
+## Caudal-fin clip
+
+This is a secondary batch mark that is supposed to be applied to fish that are tagged and released:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+xtabs(~Year+CaudalPunch, data=all.fish, exclude=NULL, na.action=na.pass)
+xtabs(~Species+CaudalPunch, data=all.fish, exclude=NULL, na.action=na.pass)
+```
+
+A cross tabulation of the caudal punch code and the application of a tag by species is:
+ 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+xtabs(~TagStatus+CaudalPunch+Species, data=all.fish, exclude=NULL, na.action=na.pass)
+```
+
+
+
+From KP:
+
+3.1.3 Caudal punch
+
+> The protocol was supposed to be that every fish (at least for coho and sockeye) 
+> should have a caudal punch. It looks like this has been applied rather inconsistently 
+> over the years… but it’s possible that the data entry just missed these. 
+> I’ll look into this for 2021 and (once I get raw data sheets) further back.
+
+
+## Adipose Fin clip
+
+Adipose-fin clip field was used mainly for Coho Salmon
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+xtabs(~AdiposeClip+Species,     data=all.fish, exclude=NULL, na.action=na.pass)
+xtabs(~AdiposeClip+Year,        data=all.fish, exclude=NULL, na.action=na.pass)
+xtabs(~AdiposeClip+CaudalPunch, data=all.fish, exclude=NULL, na.action=na.pass)
+```
+
+From KP:
+
+> This is (I think) actually an indication of a recognition of a clipped adipose 
+> rather than the crew clipping the adipose. This would be equivalent to a hatchery rate 
+> for coho because Toboggan hatchery clips adipose on smolts at release 
+> (Ryan correct me if I’m wrong, but I think this has always been the case?). 
+> For the other species it doesn’t immediately make sense. 
+> I kind of doubt that this was consistently checked even on coho given 
+> the very few fish in some years with adipose clips, so I think you can ignore this mark for now.
+
+This field will be ignored.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+all.fish$AdiposeClip<- NULL
+```
+
+## Tag colors
+
+A cross tabulation of the color of the tag applied is:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# what colors are used for each species by year
+all.fish$Year.Species <- paste0(all.fish$Year, ".", all.fish$Species)
+xtabs(~Year.Species+ AppliedColor, data=all.fish, exclude=NULL, na.action=na.pass)
+
+```
+
+We see, or example, that several shades of green appear to be used for a species within a year?
+Some colors need standardization (e.g., "yellow" vs "Yellow") and some colors may be in error (e.g., "grey").
+
+Similarly, we can look at the colors of the recaptured tags:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# what colors are used for each species by year
+xtabs(~Year.Species+ RecapturedColor, data=all.fish, exclude=NULL, na.action=na.pass)
+```
+
+Some editing of the recaptured tag colors is also needed.
+We converted all tag colors to lower case, and the revised tabulations are:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Standardize the tag applied color.
+all.fish$AppliedColor    <- tolower(all.fish$AppliedColor)
+all.fish$RecapturedColor <- tolower(all.fish$RecapturedColor)
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# check the fix ups
+xtabs(~Year.Species+ AppliedColor, data=all.fish, exclude=NULL, na.action=na.pass)
+xtabs(~Year.Species+ RecapturedColor, data=all.fish, exclude=NULL, na.action=na.pass)
+
+```
+
+This improves things a bit, but additional standardization of tag colors is needed.
+
+In subsequent analyses, we will tend to use only the tag number (ignoring the tag color) and 
+so need to examine if multiple colors are used with the same tag number (generally a bad idea)!
+
+## Multiple tag colors for same tag number or tag color not recorded
+
+Each tag applied should have a tag color and a tag number. In some cases, the tag color is not recorded
+when a fish is recaptured. And, more seriously, 
+there are some cases where the same tag number is associated with multiple colors within
+the same species-year combination.
+
+For each species-year combination, the colors associated with each tag number were recorded.
+The following is a summary of the number of colors (where no color is considered as a level of a "color") 
+associated with each tag number in a species-year combination:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+all.fish$myTagColor  <- all.fish$RecapturedColor
+all.fish$myTagNumber <- all.fish$RecapturedTagNumber
+select <- !is.na(all.fish$AppliedColor) | !is.na(all.fish$AppliedTagNumber)
+all.fish$myTagColor [select] <- all.fish$AppliedColor    [select]
+all.fish$myTagNumber[select] <- all.fish$AppliedTagNumber[select]
+
+# are there cases where the same tag number has different colors within a year
+mult.colors <- plyr::ddply(all.fish, c("Species","Year","myTagNumber"), plyr::summarize, 
+                           n.color=length(unique(myTagColor)),
+                           color.list=paste(unique(myTagColor),"",collapse=","))
+xtabs(~n.color, data=mult.colors, exclude=NULL, na.action=na.pass)
+```
+
+In most cases, only a single color is associated with a tag number. However, there are over 2500 records
+where more than one color is associated with a tag number. *KP fixed most of these*
+
+A summary of the species-year-tag numbers with more than one color associated are listed in Appendix A, 
+and here are the 
+first 20 records.
+A value of *NA* in the color list, indicates that the tag number did not have color associated with it for at
+least one record. These would appear to be easily fixable. **However, there are a number 
+of times where multiple different colors are associated  with the same tag number in a species-year.**  
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+mult.colors <- mult.colors[ mult.colors$n.color > 1,]
+kable(mult.colors[1:20,], row.names=FALSE,
+      caption="Tag numbers with multiple colors within a species-year combination (first 20 rows; see Appendix for full listing)",
+      col.names=c("Species","Year","Tag Number","# colors","Color list"),
+      digits=c(0,0,0,0,0))  %>% 
+#      add_header_above(c(" " = 1, " "=2, "95% CI" = 2, " " = 1, " " = 1)) %>%
+      column_spec(column=c(1:4),       width="2cm") %>%
+      column_spec(column=5,            width="6cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+
+```
+
+Some colors may need to be recoded (e.g., is *Green* different than *Light Green* or *Lime Green*?)
+
+The database should be updated when both the tag number and color are known (usually the case where a tag number
+is given but no color for that species-year).
+
+
+<!-- ## Color tags used as batch marks -->
+
+<!-- In some years, only colored tags as a batch mark (no numbers) and in some years colored/numbered tags were used. -->
+<!-- A summary is: -->
+
+<!-- ```{r echo=FALSE, message=FALSE, warning=FALSE} -->
+
+<!-- all.fish$myTagColorPresent  <- !is.na(all.fish$myTagColor) -->
+<!-- all.fish$myTagNumberPresent <- !is.na(all.fish$myTagNumber) -->
+<!-- # there appear to be some fish with a tag color, but no number -->
+<!-- xtabs(~myTagColorPresent+myTagNumberPresent, data=all.fish, exclude=NULL, na.action=na.pass) -->
+<!-- temp <- as.data.frame(xtabs(~myTagColorPresent+myTagNumberPresent+Year+Species, data=all.fish, exclude=NULL, na.action=na.pass, drop.unused.levels=TRUE)) -->
+<!-- temp <- temp[ temp$Freq >0,] -->
+<!-- temp -->
+<!-- ``` -->
+
+
+## Individually vs batch tagging
+
+For CO, SK, and ST, fish were mostly tagged with numbered tags in all years. For CH, only batch marks (colored tags only)
+were used as summarized below:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+temp <- xtabs(~Species+!is.na(myTagNumber), data=all.fish[all.fish$TagStatus %in% c("A","AR"),], exclude=NULL, na.action=na.pass)
+names(dimnames(temp)) <- c("Year", "Tag number present when tag status indicates tag applied")
+temp
+
+```
+
+There are a small number of CH where a tag number is present -- **are these may be miscodes in the database?**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cat("Breakdown of CH with tag numbers by year \n")
+temp <- xtabs(~Year+!is.na(myTagNumber), data=all.fish[all.fish$Species=="CH",], exclude=NULL, na.action=na.pass)
+names(dimnames(temp)) <- c("Year", "Tag number applied")
+temp
+
+```
+
+Tag numbers for CH will be ignored.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+all.fish$myTagNumber[ all.fish$Species=="CH"] <- NA
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+cat("Breakdown of CH with tag numbers by year after removing tag numbers for CH \n")
+temp <- xtabs(~Year+~!is.na(myTagNumber), data=all.fish[all.fish$Species=="CH",], exclude=NULL, na.action=na.pass)
+names(dimnames(temp)) <- c("Year", "Tag number applied")
+temp
+```
+
+There are also some fish where the *TagStatus* code indicates a tag is applied, but the *AppliedTagNumber* field
+is missing (see next section).
+
+## Fish with TagStatus="A" but tag number is missing in *AppliedTagNumber* field
+
+As shown previously, there are a number of cases where the *TagStatus* code indicates that a tag was
+applied, but no value is recorded in the *AppliedTagNumber* field:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+temp <- xtabs(~Species+!is.na(myTagNumber), data=all.fish[all.fish$TagStatus %in% c("A","AR"),], exclude=NULL, na.action=na.pass)
+names(dimnames(temp)) <- c("Year", "Tag number present when tag status indicates tag applied")
+temp
+
+```
+
+Unless the tag number is recorded in the *RecapturedTagNumber* field, these records will be ignored.
+
+## Fish with TagStatus="A" but the tag number in recaptured tag number field
+
+If the *TagStatus* code is "A", the tag number and color should appear in the *AppliedColor* and *AppliedTagNumber* fields.
+In some cases it does not. These need to be repaired. Some of these fish were counted in the previous section.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+select <- all.fish$TagStatus %in% c("A") & !is.na(all.fish$RecapturedTagNumber) 
+temp <- c("Species","Year","Sample_Date","Location_Code","TagStatus","AppliedColor","AppliedTagNumber","RecapturedColor","RecapturedTagNumber")
+#setdiff(temp, names(all.fish))
+all.fish[select, temp]
+
+# kable(all.fish[select, temp], row.names=FALSE, longtable=TRUE,
+#       caption="Tagged fish with tag number in Recaptured Field",
+#       col.names=c("Species","Year","Date","Location","Tag Status","Applied Color","Applied Tag Number",
+#                   "Recaptured Color","Recaptured Tag Number"),
+#       digits=c(0,0,0,0,0,0,0,0,0))  %>% 
+# #      add_header_above(c(" " = 1, " "=2, "95% CI" = 2, " " = 1, " " = 1)) %>%
+#       column_spec(column=3,       width="3cm") %>%
+#       column_spec(column=7,       width="2cm") %>%
+#       column_spec(column=9,       width="2cm") %>%
+#       kable_styling("bordered",position = "center", full_width=FALSE, latex_options = c("repeat_header","HOLD_position"))
+
+
+
+```
+
+## Fish with TagStatus="R" but the tag number in applied tag number field
+
+Similarly, recaptures should have the AppliedColor and AppliedTagNumber missing. These are cases
+where this needs to be fixed.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+select <- all.fish$TagStatus %in% c("R") & !is.na(all.fish$AppliedTagNumber) 
+temp <- c("Species","Year","Sample_Date","Location_Code","TagStatus","AppliedColor","AppliedTagNumber","RecapturedColor","RecapturedTagNumber")
+#setdiff(temp, names(all.fish))
+nrow(all.fish[select, temp])
+
+# kable(all.fish[select, temp], row.names=FALSE, longtable=TRUE,
+#       caption="Recaptured fish with tag number in Applied Field",
+#       col.names=c("Species","Year","Date","Location","Tag Status","Applied Color","Applied Tag Number",
+#                   "Recaptured Color","Recaptured Tag Number"),
+#       digits=c(0,0,0,0,0,0,0,0,0))  %>% 
+# #      add_header_above(c(" " = 1, " "=2, "95% CI" = 2, " " = 1, " " = 1)) %>%
+#       column_spec(column=3,       width="3cm") %>%
+#       column_spec(column=7,       width="2cm") %>%
+#       column_spec(column=9,       width="2cm") %>%
+#       kable_styling("bordered",position = "center", full_width=FALSE, 
+#                     latex_options = c("repeat_header","HOLD_position"))
+
+```
+
+Some of these may be recaptures of double tagged fish (?)
+
+## Fish apparently captured before release
+
+We use the tag number (ignoring the tag color) to match across records within a species-year combination
+and then looked for cases where the recaptured date is earlier than the release date.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+bad.recaps <- plyr::ddply(all.fish, c("Species","Year","myTagNumber"), function(x){
+   # see if the fish is both released and recaptured
+   if(x$Species[1] %in% c("CO","SK","ST") & !is.na(x$myTagNumber[1])){
+     #if(x$myTagNumber[1] == 36199)browser()
+     #browser()
+     release_date <- NA
+     recap_date   <- NA
+     select <- x$TagStatus %in% c("A","AR")      & x$Location_Code=="Campground"
+     if( any(select)) {
+        release_date<- min(x$Sample_Date[select])
+     }
+     select <- x$TagStatus %in% c("R","A","AR")  & x$Location_Code=="Canyon"
+     if( any(select)){
+        recap_date <- min(x$Sample_Date[select])
+     }
+     if (!is.na(release_date) & !is.na(recap_date) & (release_date > recap_date)){
+        x$release_date <- release_date
+        x$recap_date   <- recap_date
+        return(x)
+     }
+     return(NULL)
+   }
+   return(NULL)
+})
+
+
+```
+
+There are `r nrow(bad.recaps)` tag numbers where the recapture date is earlier than the release date:
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+temp <- c("Species","Year","Sample_Date","Location_Code","TagStatus","AppliedColor","AppliedTagNumber",
+          "RecapturedColor","RecapturedTagNumber")
+#setdiff(temp, names(bad.recaps))
+
+kable(bad.recaps[,temp], row.names=FALSE, longtable=TRUE,
+      caption="Fish apparently recaptured before release",
+      col.names=c("Species","Year","Date","Location","Tag Status","Applied Color","Applied Tag Number", "Recaptured Color","Recaptured Tag Number"),
+      digits=c(0,0,0,0,0,0,0,0,0))  %>% 
+#      add_header_above(c(" " = 1, " "=2, "95% CI" = 2, " " = 1, " " = 1)) %>%
+      column_spec(column=3,       width="3cm") %>%
+      column_spec(column=7,       width="2cm") %>%
+      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, 
+                    latex_options = c("repeat_header","HOLD_position"))
+
+```
+
+Some of these are artefacts of earlier errors, e.g., fish 36199 has the tag number in the recapture field, but is
+labelled with TagStatus "A". 
+
+## ISO week 
+
+We computed the ISO week (week as it would appear in the ISO 8601 system,
+which uses a reoccurring leap week, https://en.wikipedia.org/wiki/ISO_week_date) for each sample date.
+Weeks start with Monday and end on Sunday. 
+Each week's year is the Gregorian year in which the Thursday falls. 
+The first week of the year, hence, always contains 4 January. 
+ISO week year numbering can deviates by 1 from the Gregorian year for some days close to 1 January.
+
+Here is the cross tabulation of the number of fish handled by ISO week and year.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# get the iso week of the year
+all.fish$ISOweek <- lubridate::isoweek(all.fish$Sample_Date)
+xtabs(~Year+ISOweek, data=all.fish, exclude=NULL, na.action=na.pass)
+
+```
+
+Generally speaking, effort is concentrated in ISO weeks 28 to 40.
+
+
+## Overlap of tagging and recovery effort
+
+We computed the min/max of tagging dates at the Campground and min/max of recovery/capture dates at the Canyon
+for each species-year combination:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+date.sum <- plyr::ddply(all.fish, c("Species","Year"), function(x){
+  # find the tagging records
+  if(x$Species[1] %in% c("CO","SK","ST")){
+     select <- x$TagStatus %in% c("A","AR","A2") & x$Location_Code %in% "Campground" 
+     #KP added A2
+     Applied.start <- min(x$Sample_Date[select], na.rm=TRUE)
+     Applied.end   <- max(x$Sample_Date[select], na.rm=TRUE)
+     select <- x$TagStatus %in% c(NA, "R","A","AR","A2")& x$Location_Code %in% "Canyon"
+     Recaptured.start <- min(x$Sample_Date[select], na.rm=TRUE)
+     Recaptured.end   <- max(x$Sample_Date[select], na.rm=TRUE)
+  }
+  if(x$Species[1] %in% c("CH")){
+     Applied.start    <- as.Date(NA)
+     Applied.end      <- as.Date(NA)
+     Recaptured.start <- as.Date(NA)
+     Recaptured.end   <- as.Date(NA)
+  }
+  data.frame(Applied.start=Applied.start,
+             Applied.end  =Applied.end,
+             Recaptured.start=Recaptured.start,
+             Recaptured.end  =Recaptured.end)
+ })
+date.sum
+```
+
+A plot shows the overlap of these periods (as expected):
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# convert dates in each year to julian dates
+date.sum$Applied.start.j    <- lubridate::yday(date.sum$Applied.start)
+date.sum$Applied.end.j      <- lubridate::yday(date.sum$Applied.end)
+date.sum$Recaptured.start.j <- lubridate::yday(date.sum$Recaptured.start)
+date.sum$Recaptured.end.j   <- lubridate::yday(date.sum$Recaptured.end)
+
+ggplot(data=date.sum, aes(x=Applied.start.j, y=Year))+
+   geom_point()+
+   geom_point(aes(x=Applied.end.j))+
+   geom_segment(aes(xend=Applied.end.j, yend=Year))+
+   geom_point(aes(x=Recaptured.start.j, y=Year+.3))+
+   geom_point(aes(x=Recaptured.end.j,   y=Year+.3))+
+   geom_segment(aes(x=Recaptured.start.j, xend=Recaptured.end.j, y=Year+.3, yend=Year+.3), linetype="dashed")+
+   facet_wrap(~Species, ncol=2)+
+   xlab("Day of year \n Solid=Tag Application; Dashed = Capture/recapture in Canyon")
+```
+
+
+# Capture-histories
+
+We will use the captures and recaptures of fish to create a capture history for each fish which is the first step in the capture-recapture analysis.
+
+## Use tag number only to match across capture-locations and dates
+
+Because of problems with the color of tag not always being recorded or different colors appears to be used for the same tag within a year, the capture history will be based on the tag number only (i.e., color will be ignored).
+This may confound tag numbers across multiple colors within the same species-year in some cases.
+
+We will ignore the small number of fish where an old color/tag number is replaced by a new color/tag number.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+xtabs(~Harvested+is.na(AppliedTagNumber), data=all.fish, exclude=NULL, na.action=na.pass)
+xtabs(~Harvested+is.na(RecapturedTagNumber), data=all.fish, exclude=NULL, na.action=na.pass)
+
+#KP: not really necessary for this analysis since harvested recaps
+# were usually at the canyon anyway. One SK had applied tag+harvested, left in
+
+# remove all harvested fish. Small number of harvested fish with tags removed
+#all.fish.no.harvest <- all.fish[ !all.fish$Harvested,]
+
+#xtabs(~TagStatus+interaction(Species,is.na(AppliedTagNumber)), data=all.fish.no.harvest, exclude=NULL, na.action=na.pass)
+#xtabs(~TagStatus+interaction(Species,is.na(RecapturedTagNumber)), data=all.fish.no.harvest, exclude=NULL, na.action=na.pass)
+
+```
+
+KP: remove recaptures that only have tag status of *R* but no recap tag number. It's likely that these were caudal punch fish only but applied rather inconsistently over the years.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+all.fish[which(all.fish$TagStatus %in%"R"&is.na(all.fish$RecapturedTagNumber)),
+         "TagStatus"] <- "NA"
+
+```
+
+
+## Two digit capture history
+
+We will construct the two digit capture history representing tagging on the *Campground* and capture in the *Canyon* using ONLY the tag number within species-year combination.
+This will deal with the majority of cases where the tag number is recorded but not the color; 
+
+For Species CO, SK, ST.
+
+- If a tag number is present, and if the *TagStatus* is either *A* or *AR*, and the location of the fish handled is *Campground*, then 
+this is treated as a capture at occasion 1 (first digit of history set to 1)
+- If a tag number is present and if the *TagStatus* is either *A* or *R*, and the location of the of the fish handling is *Canyon*, 
+then this is treated as a capture at occasion 2 (second digit of history set to 1).
+In some years, tags were also applied in the *Canyon* and so these represent a capture of a unmarked fish at occasion 2.
+- If no tag number is present and if the *TagStatus* is NA (missing), *A*, or *AR*,  and the location of
+the fish handling is the *Canyon*, this is considered a capture at occasion 2 of a fish.
+
+These rule will ignore harvest of fish on the *Campground*; harvest of fish in the *Canyon* is treated
+as a unmarked fish seen in the *Canyon*.
+
+Species CH never uses tag number and only color-coded batch marks. The rules for constructing the
+capture-history for CH are:
+
+- If *TagStatus* is *A* and the location is *Campground*, then this treated as a tagging at occasion 1.
+- If *TagStatus* is *R* and location is *Canyon*, then this is treated as a recapture at occasion 2.
+- If *TagStatus* is NA (missing) or *A*,  and the location is *Canyon*
+, then this treated as a capture of an untagged fish at occasion 2.
+
+**Unfortunately, the *TagStatus* field for CH seems to be missing in most years (see below).**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cat("Tag status for CH by year \n")
+xtabs(~Year+TagStatus, data=all.fish[all.fish$Species=="CH",], exclude=NULL, na.action=na.pass)
+```
+
+The following is a summary of the capture histories constructed by year.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create the capture histories + ISOweek in the two strata
+
+
+cap.hist <- plyr::ddply(all.fish, c("Species","Year","myTagNumber"), function(x){
+   # if a tag number is present, then this is a single fish and away we go
+   freq=0
+   hist=".."
+   if(x$Species[1] %in% c("CO","SK","ST") & !is.na(x$myTagNumber[1])){  # applied in campground or recaptured (from those released) on campground
+     #browser()
+     freq <- 1
+     hist <- "00"
+     w1 <- NA
+     w2 <- NA
+     select <- x$TagStatus %in% c("A","A2","AR")  & x$Location_Code=="Campground"
+     if( any(select)) {
+        substr(hist,1,1) <- '1'
+        w1 <- min(x$ISOweek[select])
+     }
+     select <- x$TagStatus %in% c("R","A","A2","AR")  & x$Location_Code=="Canyon"
+     if( any(select)){
+        substr(hist,2,2) <- '1' 
+        w2 <- min(x$ISOweek[select])
+     }
+   }
+   if(x$Species[1] %in% c("CO","SK","ST") & is.na(x$myTagNumber[1])){  # batch marks or first time captures in Canyon
+     # we will create individual records for each fish so that stratification is a breeze later
+     select <- x$TagStatus %in% c(NA,"A","A2","AR") & x$Location_Code=="Canyon"
+     x <- x[select,]
+     freq <- 1
+     hist <- rep("01", nrow(x))
+     w1 <- NA  # not captured in the first stratum
+     w2 <- x$ISOweek
+   }
+   if(x$Species[1] %in% c("CH")){  # batch marks for Chinook
+     #if(x$Species[1]=="CH" & x$Year[1]==2017)browser()
+     # need to make several counts here
+     hist <- c("00","10","11","01")
+     freq <- c( 0,    0,   0,   0 )
+     select <- x$TagStatus %in% c("A","AR") & x$Location_Code=="Campground"  # releases
+     freq[2] <- sum(select)
+     select <- x$TagStatus %in% c("R") & x$Location_Code=="Canyon"  # recaptures
+     freq  <- freq + c(0, -sum(select), sum(select), 0)
+     select <- x$TagStatus %in% c("A", NA) & x$Location_Code=="Canyon"  # unmarked fish captured
+     freq[4] <- sum(select)
+     freq[1] <- nrow(x) - sum(freq)  # left overs (recaptures in Campground, untagged in campground, etc.
+     w1 <- NA # not possible to assign strata
+     w2 <- NA
+   }
+   data.frame(hist=hist, freq=freq, w1=w1, w2=w2)
+})
+
+#all.fish[ all.fish$myTagNumber == 70526 & !is.na(all.fish$myTagNumber),]
+#all.fish[ all.fish$RecapturedTagNumber == 70526 & !is.na(all.fish$RecapturedTagNumber),]
+
+#cap.hist[ cap.hist$Species=="ST" & cap.hist$Year==2017 & cap.hist$hist=="11",]
+#xtabs(~Species+hist, data=cap.hist, exclude=NULL, na.action=na.pass)
+cap.hist$Species.Hist <- paste0(cap.hist$Species,'.', cap.hist$hist)
+addmargins(xtabs(freq ~Year+Species.Hist, data=cap.hist, exclude=NULL, na.action=na.pass),1)
+
+
+```
+
+There are fish with a history is 00 (which in theory should not be possible;
+fish harvested at the *Campground* are excluded when computing the capture history). 
+A tabulation of
+*TaggingStatus*, the harvest indicator, and the location of handling for fish with history 00 gives:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+temp <- cap.hist[ cap.hist$hist=="00",]
+temp$SYT <- paste(temp$Species, temp$Year, temp$myTagNumber, sep=".")
+all.fish$SYT <- paste(all.fish$Species, all.fish$Year,
+                      all.fish$myTagNumber, sep=".")
+
+select <- all.fish$Species %in% c("CO","SK","ST") & all.fish$SYT %in% temp$SYT|all.fish$Species %in% c("CH") &              !(all.fish$TagStatus %in% c("A","AR") & all.fish$Location_Code=="Campground"| all.fish$TagStatus %in% c("R")
+& all.fish$Location_Code=="Canyon" | all.fish$TagStatus %in% c("A", NA)  & all.fish$Location_Code=="Canyon") 
+  
+temp2 <- all.fish[ select,]
+
+cat("TagStatus of history 00 \n")
+xtabs(~Species+TagStatus+Location_Code, data=temp2, exclude=NULL, na.action=na.pass)
+
+```
+
+The values above may be larger than the count in the previous history table because
+if a fish is handled multiple times at a location (and has multiple records in the database),
+it will be counted twice in the subsequent tabulation.
+
+For *CO*, *SK*, and *ST*, fish with history *00* appear to be mostly
+recaptures on the *Campground*  and would double count fish on the campground if included.
+
+For *CH*, the database appears to be inconsistent in how fish handling is recorded.
+
+
+## Capture history augmented with week of observation
+
+The capture history was augmented with the week of tagging in the *Campground* (labelled *w1*) 
+and the week of capture on the *Canyon*; (labelled as *w2*).
+
+Here is a summary of the movement of fish among the weeks from the *Campground* to the
+*Canyon* over all species and years. 
+The last row (*w1* set to NA) are the number of untagged fish captured in the *Canyon* in each
+of *w1*. The last column are the number of fish tagged and released but never recaptured in each 
+release week *w1*.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# check the cross tabulation of w1 and w2
+xtabs(~w1+w2, data=cap.hist, exclude=NULL, na.action=na.pass)
+```
+
+ 
+Most fish are captured within 3 weeks of being tagged.
+
+**There are a small number of fish that apparently were recovered before they were released (values
+where *w1* < *w2*) (see previous section in the data screening)
+This may be a holdover from the inconsistency in the tag colors when matching only on the tag number **
+Here are the fish were the recapture week is < release week:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+select <- cap.hist$w1 > cap.hist$w2  & !is.na(cap.hist$w1) & !is.na(cap.hist$w2)
+sum(select)
+temp <- cap.hist[select,]
+temp <- temp[ order(temp$Species, temp$myTagNumber),]
+temp
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# check how many histories are for individual fish (tag number present)
+# for for groups of fish (no tag number present)
+xtabs(~Species+hist, data=cap.hist, exclude=NULL, na.action=na.pass)
+xtabs(freq~Species+hist, data=cap.hist, exclude=NULL, na.action=na.pass)
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,include=FALSE}
+xtabs(~Year+TagStatus, data=all.fish[all.fish$Species=="CH",], exclude=NULL, na.action=na.pass)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# Used to investigate capture histories better
+temp <- cap.hist[ cap.hist$Species=="SK" & cap.hist$Year==2020 & cap.hist$hist=="00",]
+temp <- cap.hist[ cap.hist$hist=="00",]
+
+temp2 <- all.fish[ all.fish$myTagNumber %in% temp$myTagNumber &all.fish$Species=="SK" & all.fish$Year==2020 ,]
+temp2 <- all.fish[ all.fish$myTagNumber %in% temp$myTagNumber  ,]
+temp2[,c("Species","Year","TagStatus","AppliedColor","AppliedTagNumber","RecapturedColor","RecapturedTagNumber","Location_Code")]
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
+```
+
+
+# Pooled-Petersen estimator
+
+## Estimator 
+
+The simplest capture-recapture estimator is the Pooled-Petersen estimator, where all capture/recaptures
+at a location are pooled over the entire study. The Chapman modification to the estimator is:
+$$\widehat{N}_{Chapman} = \frac{(n_1+1)(n_2+1)}{m_2+1}-1$$
+
+where 
+
+- $n_1$ (number of fish released on the *Campground*), 
+- $n_2$ (number of fish examined in the *Canyon*), and
+- $m_2$ (number of recaptures).
+
+These can be obtained from the counts of the capture histories as
+
+- $n_1 = n_{10}+n_{11}$
+- $n_2 = n_{01}+n_{11}$
+- $m_2 = n_{11}$
+
+The estimator for the standard error is given in many text books and not presented here.
+The relative standard error (RSE) is computed as 
+$$RSE=\frac{standard~error}{estimate}$$
+
+## Summary statistics
+
+The summary statistics for the Pooled-Petersen are:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cap.hist.wide <- tidyr::pivot_wider(cap.hist,
+                                    id_cols=c("Species","Year"),
+                                    names_from="hist",
+                                    values_from="freq",
+                                    values_fill=0,
+                                    values_fn=sum)
+cap.hist.wide$n1 <- apply(cap.hist.wide[,c("10","11")],1,sum, na.rm=TRUE) 
+cap.hist.wide$n2 <- apply(cap.hist.wide[,c("01","11")],1,sum, na.rm=TRUE)
+cap.hist.wide$m2 <- cap.hist.wide$"11"
+as.data.frame(cap.hist.wide)
+
+```
+
+**Notice that the data for *CH* looks very odd - see earlier comments.**
+
+## Estimates
+
+The Chapman-modified Petersen estimates are : 
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Compute the Petersen estimator for each species-year combination
+all.summary <- plyr::adply(cap.hist.wide,1, function(x){
+   est <- SimplePetersen( x$n1, x$m2, x$n2-x$m2)
+   RSE=round(est$N.se/est$N.est,2) 
+   #browser()
+   data.frame(N.est=round(est$N.est), N.se=round(est$N.se), RSE=RSE)
+  
+})
+
+temp <- all.summary[,c("Species","Year","n1","n2","m2","N.est","N.se","RSE")]
+temp[ is.na(temp)] <- NA
+
+options(knitr.kable.NA = '')
+kable(temp, row.names=FALSE,
+      caption="Pooled-Petersen (Chapman modification) estimates",
+      col.names=c("Species","Year",
+                  "n1","n2","m2",
+                   "Estimate","SE","RSE"),
+      digits=c(0,0, 0,0,0, 0,0,2))  %>% 
+#      add_header_above(c(" " = 1, " "=2, "95% CI" = 2, " " = 1, " " = 1)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+
+
+
+```
+
+You can see that when the number of recaptures ($m_2$) is small,
+that the RSE is very large.
+
+Notice that something has gone wrong with the estimates of abundance for *CH* because most of the statistics (e.g., $n_1$) are unlikely to be correct).
+
+There are several cases where the number of recaptured ($m_2$) is very small -- typically a Petersen-estimator
+with fewer than 10 recaptures would have such poor precision as to be not useful.
+
+
+The estimates of abundance can be plotted over time
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(data=all.summary, aes(x=Year, y=N.est))+
+  ggtitle("Estimated abundances over time - Pooled-Petersen")+
+  geom_point()+
+  geom_line()+
+  geom_errorbar(aes(ymin=N.est-2*N.se, ymax=N.est+2*N.se), width=.1)+
+  facet_wrap(~Species, ncol=2, scales="free_y")+
+  ylab("Estimated abundance (95% ci)")
+
+```
+
+
+
+# Stratified-Petersen estimates 
+
+## Why consider a stratified estimator?
+
+The key assumptions to ensure the unbiasedness of a Pooled-Petersen estimator are:
+
+- capture probability should be equal for all fish either at the time of marking or at the time of recovery, or 
+- complete mixing occurs.
+
+Information on the effort is not available so we cannot assess if the assumption of equal probability of capture
+in the *Campground* or *Canyon* cannot be directly assessed.
+Complete mixing is unlikely to occur here because fish tagged earlier in the season tend to be recaptured
+later in the season. In particular, fish cannot be recaptured earlier than when released. 
+
+## Assessment of equal recapture probabilies
+
+There are two common methods to assess the Petersen assumptions on the equality of 
+capture probabilities either at the first or second capture locations:
+
+### Equal marked fraction
+
+In this method, we examine if the marked fraction is equal across all recapture weeks.
+The marked-fraction is computed as 
+$$\textit{MF}_i=\textit{recaptures of marked fish in week}_i/\textit{all captures in week}_i$$.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Assess the marked fractions
+mf.min.recap <- 20
+equal.MF <- plyr::dlply(cap.hist, c("Species","Year"), function(x){
+   cat("Processing ", x$Species[1], " ", x$Year[1], "\n")
+   #if(x$Species[1]=="CO")browser()
+   total.caps <- as.data.frame(xtabs(freq~w2, data=x, exclude=NULL, na.action=na.pass), stringsAsFactor=FALSE)
+   total.caps <- total.caps[ !is.na(total.caps$w2),]
+   total.caps <- plyr::rename(total.caps, c("Freq"="total.caps"))
+   total.recaps <- as.data.frame(xtabs(freq~w2, data=x[!is.na(x$w1),], exclude=NULL, na.action=na.pass), stringsAsFactor=FALSE)
+   total.recaps <- total.recaps[ !is.na(total.recaps$w2),]
+   total.recaps <- plyr::rename(total.recaps, c("Freq"="total.recaps"))
+   #browser()
+   mf <- NULL
+   chi.test <- NULL
+   fish.test <- NULL
+   if(nrow(total.caps)>1){
+     mf <- merge(total.caps, total.recaps, by="w2")
+     mf$w2 <- as.numeric(as.character(mf$w2))
+     mf[ is.na(mf)] <- 0
+     mf$mf <- mf$total.recaps / mf$total.caps
+     if(sum(total.recaps$total.recaps, na.rm=TRUE) >= mf.min.recap){ 
+      chi.test  <- chisq.test(cbind(mf$total.recaps, mf$total.caps-mf$total.recaps))
+      fish.test <- fisher.test(cbind(mf$total.recaps, mf$total.caps-mf$total.recaps), simulate.p.value=TRUE)
+     }
+   }
+   list(Species=x$Species[1],
+        Year   =x$Year[1],
+        mf=mf, 
+        chi.test=chi.test,
+        fish.test=fish.test)
+
+})
+
+```
+
+A $k \times 2$ contingency table is created, where $k$ is the number of recapture strata:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+temp <- data.frame(strata=c('1','2','3','...','k'),
+                   marked=c('m1','m2','m3','...','mk'),
+                   unmared=c('u1','u2','u3','...','uk'))
+
+kable(temp, row.names=FALSE,
+      caption="Example of contingency table to assess equal marked fraction",
+      col.names=c("Stratum","Marked fish","Unmarked fish"),
+      digits=c(0,0,0))  %>% 
+#      add_header_above(c(" " = 1, " "=2, "95% CI" = 2, " " = 1, " " = 1)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+```
+
+Then the usual chi-square test for equal proportions across strata can be applied. In cases where the numbers in the contingency table are small, the Fisher Exact Test for equal proportions can be applied.
+
+Here is the summary of the results of a chi-square and Fisher exact test for equal marked fractions. The complete set of contingency tables and test statistics is presented in Appendix B.
+**It is not possible to compute the test statistics for CH**.
+
+If the number of recaptures was small, the statistical test was not done.
+The Fisher-exact test would be preferred is any of the individual weeks had very small sample sizes.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# show the mf table and the chi-square test
+
+# get the chi.square test
+temp <- plyr::ldply(equal.MF, function(x){
+  chi.p.value  <- x$chi.test$p.value
+  fish.p.value <- x$fish.test$p.value
+  data.frame(chi.p.value=insight::format_p(chi.p.value),
+             fisher.p.value=insight::format_p(fish.p.value))
+})
+
+temp.wide <- tidyr::pivot_wider(temp,
+                        id_cols="Year",
+                        names_from="Species",
+                        values_from=c("chi.p.value","fisher.p.value"))
+
+kable(temp.wide[,c("Year",
+#                   "chi.p.value_CH","fisher.p.value_CH",
+                   "chi.p.value_CO","fisher.p.value_CO",
+                   "chi.p.value_SK","fisher.p.value_SK",
+                   "chi.p.value_ST","fisher.p.value_ST")], row.names=FALSE,
+      caption="Summary of tests for equal marked fraction",
+      col.names=c("Year",
+                  #"Chi","Fisher", 
+                  "Chi","Fisher",  
+                  "Chi","Fisher", 
+                  "Chi","Fisher"),
+      digits=c(0,  
+#                  0,0, 
+                   0,0, 
+                   0,0, 
+                   0,0))  %>% 
+      add_header_above(c(" " = 1, 
+#                        "Chinook "=2,
+                         "Coho"=2,
+                         "Sockeye"=2,
+                         "Steelhead"=2)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+
+
+```
+
+If the total number of tagged fish is less than `r mf.min.recap`, then the
+test statistic is not computed.
+
+In most cases, there was evidence that the marked fractions were not equal across
+recapture weeks. If cases of large sample sizes, this may be a consequence
+of a very high power to detect small differences in the marked fraction.
+
+A plot of the marked fractions over time is:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plotdata <- plyr::ldply(equal.MF, function(x){
+     x$mf
+})
+
+ggplot(data=plotdata, aes(x=w2, y=mf, color=as.factor(Year)))+
+  ggtitle("Marked fraction over time")+
+  geom_point()+
+  geom_line()+
+  scale_color_discrete(name="Year")+
+  facet_wrap(~Species, ncol=2, scales="free_y")+
+  xlab("Recovery week")
+
+
+```
+
+So while there may be statistical differences across recapture weeks,
+the curve, with few exceptions, look fairly flat.
+
+
+### Equal recapture proportion
+
+Similarly, we can examine if the proportion of fish released that are recaptured is equal across all release weeks.
+The recapture-proportion is computed as 
+$$\textit{RF}_i=\textit{recaptures of marked fish released in week}_i/\textit{all releases from week}_i$$.
+
+A $k \times 2$ contingency table is created, where $k$ is the number of release strata,
+and $R_i$ is the number of fish released with tags in week 1, and $r_i$ is the number of recaptures.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+temp <- data.frame(strata=c('1','2','3','...','k'),
+                   marked=c('r1','r2','r3','...','rk'),
+                   unmared=c('R1-r1','R2-r2','R3-r3','...','Rk-rk'))
+
+kable(temp, row.names=FALSE,
+      caption="Example of contingency table to assess equal recaptured proportion",
+      col.names=c("Stratum","Recaptured","Not recaptured"),
+      digits=c(0,0,0))  %>% 
+#      add_header_above(c(" " = 1, " "=2, "95% CI" = 2, " " = 1, " " = 1)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+```
+
+As before a chi-square test or Fisher Exact Test can be constructed.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Assess the recapture fractions
+rf.min.recap <- 20 
+equal.RF <- plyr::dlply(cap.hist, c("Species","Year"), function(x){
+   cat("Processing ", x$Species[1], " ", x$Year[1], "\n")
+   #if(x$Species[1]=="CO")browser()
+   total.rel <- as.data.frame(xtabs(freq~w1, data=x, exclude=NULL, na.action=na.pass), stringsAsFactor=FALSE)
+   total.rel <- total.rel[ !is.na(total.rel$w1),]
+   total.rel <- plyr::rename(total.rel, c("Freq"="total.rel"))
+   total.recaps <- as.data.frame(xtabs(freq~w1, data=x[!is.na(x$w2),], exclude=NULL, na.action=na.pass), stringsAsFactor=FALSE)
+   total.recaps <- total.recaps[ !is.na(total.recaps$w1),]
+   total.recaps <- plyr::rename(total.recaps, c("Freq"="total.recaps"))
+   #browser()
+   rf <- NULL
+   chi.test <- NULL
+   fish.test <- NULL
+   if(nrow(total.rel)>1){
+     rf <- merge(total.rel, total.recaps, by="w1")
+     rf$w1 <- as.numeric(as.character(rf$w1))
+     rf[ is.na(rf)] <- 0
+     rf$rf <- rf$total.recaps / rf$total.rel
+     if(sum(total.recaps$total.recaps, na.rm=TRUE) >= rf.min.recap){ 
+      chi.test  <- chisq.test (cbind(rf$total.recaps, rf$total.rel-rf$total.recaps))
+      fish.test <- fisher.test(cbind(rf$total.recaps, rf$total.rel-rf$total.recaps), simulate.p.value=TRUE)
+     }
+   }
+   list(Species=x$Species[1],
+        Year   =x$Year[1],
+        rf=rf, 
+        chi.test=chi.test,
+        fish.test=fish.test)
+
+})
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# show the mf table and the chi-square test
+
+# get the chi.square test
+temp <- plyr::ldply(equal.RF, function(x){
+  chi.p.value  <- x$chi.test$p.value
+  fish.p.value <- x$fish.test$p.value
+  data.frame(chi.p.value=insight::format_p(chi.p.value),
+             fisher.p.value=insight::format_p(fish.p.value))
+})
+
+temp.wide <- tidyr::pivot_wider(temp,
+                        id_cols="Year",
+                        names_from="Species",
+                        values_from=c("chi.p.value","fisher.p.value"))
+
+kable(temp.wide[,c("Year",
+#                   "chi.p.value_CH","fisher.p.value_CH",
+                   "chi.p.value_CO","fisher.p.value_CO",
+                   "chi.p.value_SK","fisher.p.value_SK",
+                   "chi.p.value_ST","fisher.p.value_ST")], row.names=FALSE,
+      caption="Summary of tests for equal recovery proportion",
+      col.names=c("Year",
+                  #"Chi","Fisher", 
+                  "Chi","Fisher",  
+                  "Chi","Fisher", 
+                  "Chi","Fisher"),
+      digits=c(0,  
+#                  0,0, 
+                   0,0, 
+                   0,0, 
+                   0,0))  %>% 
+      add_header_above(c(" " = 1, 
+#                        "Chinook "=2,
+                         "Coho"=2,
+                         "Sockeye"=2,
+                         "Steelhead"=2)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+
+
+```
+
+If the total number of recaptured fish is less than `r rf.min.recap`, then the
+test statistic is not computed.
+
+In most cases, there was NO evidence that the proportion recaptures were not equal across
+release weeks. If cases of large sample sizes, this may be a consequence
+of a very high power to detect small differences in the recovery proportion.
+
+A plot of the recovery fractions over time is:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plotdata <- plyr::ldply(equal.RF, function(x){
+     x$rf
+})
+
+ggplot(data=plotdata, aes(x=w1, y=rf, color=as.factor(Year)))+
+  ggtitle("Recovery proportions over time")+
+  geom_point()+
+  geom_line()+
+  scale_color_discrete(name="Year")+
+  facet_wrap(~Species, ncol=2, scales="free_y")+
+  xlab("Release week")
+
+
+```
+
+So while there may be statistical differences across release weeks,
+the curve, with few exceptions, look fairly flat.
+
+Detailed results are shown in Appendix C.
+
+
+## SPAS estimator
+
+If the previous tests for equal marked fraction or equal recovery proportion both fail,
+then a stratified estimator may be considered. If either test fails to detect an effect,
+then the need for a stratified estimator may be moot.
+
+A Stratified-Petersen estimator (SPAS; Schwarz, 2020) stratifies the time a fish is handled
+at both locations. The strata are often the week of handling, but strata can be completely general 
+in terms of the length of time. 
+
+Stratified models will require the use of individually numbered tags so that the time of release and recapture
+can be determined. It is possible to use batch marks that vary by strata (e.g., a different color for each week),
+but the CH data did not do this. **Consequently, we will ignore the CH data**.
+
+### Stratified release and capture matrices.
+
+We created stratified release/recovery matrices using weeks of release in the *Campground*
+and week of capture in the *Canyon* for each species-year combination. As noted earlier, there are a few fish
+that appear to have been released after being recaptured and these fish are simply discarded.
+
+Because CH do not have individually-marked fish, this stratification is not possible for CH.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Make the release/recovery SPAS matrix
+spas.mat <- plyr::dlply(cap.hist[cap.hist$Species %in% c("CO","SK","ST"),], c("Species","Year"), function(x){
+    # remove any below diagonal elements
+    #browser()
+    select <- x$w1 > x$w2 & !is.na(x$w1) & !is.na(x$w2) # any releases before recover
+    x <- x[ !select,]
+    if(sum(select)>0)cat("Species ", x$Species[1], "Year ", x$Year[1], " removed ", sum(select), " fish with bad dates\n")
+    # remove any recoveries before the first release
+    select <- (x$w2 < min(x$w1, na.rm=TRUE))  & !is.na(x$w2)
+    if(sum(select)>0)cat("Species ", x$Species[1], "Year ", x$Year[1], " removed ", sum(select), " fish with w2 < min(w1) \n")
+    x <- x[!select,]
+    x$freq <- 1
+    # create dummy records with a freq of 0.1 to ensure that all combinations of w1 and w2 occur.
+    #browser()
+    dummy <- expand.grid(w1=c(NA, min(x$w1, na.rm=TRUE):max(x$w1, na.rm=TRUE)),
+                         w2=c(NA, min(x$w1, na.rm=TRUE):max(x$w2, na.rm=TRUE)),
+                         freq=.1)
+    
+    
+    spas.mat <- as.matrix(xtabs(freq~w1+w2, data=plyr::rbind.fill(x,dummy), exclude=NULL, na.action=na.pass))
+    spas.mat <- round(spas.mat)
+    #browser()
+    list(Species=x$Species[1],
+         Year   =x$Year[1],
+         spas.mat=spas.mat)
+})
+
+```
+
+An example of the input matrices for SPAS is shown below for Coho Salmon from `r spas.mat[[1]]$Year`.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+spas.mat[[1]]$spas.mat
+```
+
+No tagged fish were released until week `r rownames(spas.mat[[1]]$spas.mat)[1]`
+when `r sum(spas.mat[[1]]$spas.mat[1,], na.rm=TRUE)` fish were released.
+Recaptures occurs in the same and subsequent week, but
+`r spas.mat[[1]]$spas.mat[1,ncol(spas.mat[[1]]$spas.mat)]` fish were never recaptured.
+Inspections are sparse until week  `r colnames(spas.mat[[1]]$spas.mat)[2]`,
+The number of recaptures in each combination
+of release and inspection strata are often small.
+
+ A complete list for all species-years is shown in Appendix D.
+
+
+
+
+### Automated pooling rules for SPAS
+
+In many cases, the stratified set of releases and recapture is too sparse (many zeroes) or count
+are very small. Pooling rows and columns may be needed.
+
+For example of the input matrices for SPAS is shown below for Coho Salmon from `r spas.mat[[1]]$Year`.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+spas.mat[[1]]$spas.mat
+```
+
+
+Data needs to be pooled both row wise and column wise if the data are sparse
+to avoid singularities in the fit. 
+We used an automated system to pool rows or columns following Schwarz and Taylor (1998).
+
+- All rows that have 0 releases are discarded
+- All columns that have 0 recaptures of tagged fish and 0 fish inspected are discarded
+- Starting at the first row and working forwards in time,
+and then working from the final row and working backwards in time, 
+rows are pooled until a minimum of 100 (Coho), 300 (Sockeye) or 50 (steelhead) are released.
+An alternating pooling (from the top, from the bottom, from the top, etc) is used
+- Starting at the first column and working forwards in time,
+and then working from the final column and working backwards in time, 
+columns are pooled until a minimum of 100 (Coho) 300 (Sockeye), or 50 (steelhead) are inspected.
+An alternating pooling (from the left, from the right, from the left, etc) is used.
+- A manual inspection of the final pooling was used to tweak a few cases because the resulting recovery matrix was too sparse.
+- If the sum of the total recaptures from released fish is <= 50, then all rows are pooled (which reduces to a Chapman estimator)
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# process the SPAS matrices
+co.min.count.rec <- 100
+so.min.count.rec <- 300
+st.min.count.rec <-  50
+co.min.count.rel <- 100
+so.min.count.rel <- 300
+st.min.count.rel <-  50
+
+spas.mat <- plyr::llply(spas.mat, function (x){
+   cat("Processing Species", x$Species, "and ", x$Year, "\n")
+   # SPAS matrix has
+   # upper s x t = recoveries
+   # right s+1 column = number not recovered
+   # bottom t+1 row = number not tagged in recovered
+   spas.mat <- x$spas.mat
+   
+   s <- nrow(spas.mat) - 1
+   t <- ncol(spas.mat) - 1
+
+      #browser()
+   # get rid of rows that have 0 releases
+   select <- apply(spas.mat,1,sum, na.rm=TRUE)>0
+   spas.red  <- spas.mat[select,]
+   # get rid of columns that are all 0
+   select <- apply(spas.red,2,sum, na.rm=TRUE)>0
+   spas.red  <- spas.red[,select]
+   
+   # recompute s and t
+   s.red <- nrow(spas.red)-1
+   t.red <- ncol(spas.red)-1
+   
+   #browser()
+   # pool columns until you get at least xxxx recoveries in a stratum
+   # we will will work from the outside in
+   col.pool <- 1:t.red
+   col.sum  <- colSums(spas.red)
+   left.last.col <- 1
+   left.cum.sum  <- 0
+   right.last.col <- t.red
+   right.cum.sum  <- 0
+   left <- 1
+   right <- t.red
+   if(x$Species == "CO")min.count <- co.min.count.rec
+   if(x$Species == "SK")min.count <- so.min.count.rec
+   if(x$Species == "ST")min.count <- st.min.count.rec
+   while(left < right){
+      #if(year==7)browser()
+      col.pool[left] <- left.last.col
+      left.cum.sum <- left.cum.sum + col.sum[left]
+      if(left.cum.sum > min.count){
+         left.last.col <- left+1
+         left.cum.sum  <- 0
+      }
+      left <- left + 1
+      
+      col.pool[right] <- right.last.col
+      right.cum.sum <- right.cum.sum + col.sum[right]
+      if(right.cum.sum > min.count){
+         right.last.col <- right-1
+         right.cum.sum  <- 0
+      }
+      right <- right - 1
+   }
+  
+   # pool rows until you get at least xxx releases  in a stratum
+   # we will will work from the outside in
+   
+   row.pool <- 1:s.red
+   row.sum  <- rowSums(spas.red)
+   top.last.row <- 1
+   top.cum.sum  <- 0
+   bot.last.row <- s.red
+   bot.cum.sum  <- 0
+   top <- 1
+   bot <- s.red
+   if(x$Species == "CO")min.count <- co.min.count.rel
+   if(x$Species == "SK")min.count <- so.min.count.rel
+   if(x$Species == "ST")min.count <- st.min.count.rel
+   #if(x$Species == "ST" & x$Year==2017)browser()
+   while(top < bot){
+      row.pool[top] <- top.last.row
+      top.cum.sum <- top.cum.sum + row.sum[top]
+      if(top.cum.sum > min.count){
+         top.last.row <- top+1
+         top.cum.sum  <- 0
+      }
+      top <- top + 1
+      
+      row.pool[bot] <- bot.last.row
+      bot.cum.sum <- bot.cum.sum + row.sum[bot]
+      if(bot.cum.sum > min.count){
+         bot.last.row <- bot-1
+         bot.cum.sum  <- 0
+      }
+      bot <- bot - 1
+   }
+ 
+   # check the total recaptures
+   if( sum(spas.mat[1:s, 1:t])<= 50){
+      row.pool[] <- 1
+   }
+   # special instructions for particular years where the automatic pooling did not work
+   if(x$Species=="CO" & x$Year==2012){
+       row.pool[7] <- 10  
+   }
+   if(x$Species=="CO" & x$Year==2013){
+       row.pool[9] <- 11  
+   }
+   if(x$Species=="CO" & x$Year==2014){
+       row.pool[4] <- 1  
+   } 
+   if(x$Species=="SK" & x$Year==2013){
+       row.pool[5:9] <- 3
+   }
+
+   list(Species   = x$Species,
+        Year      = x$Year,
+        spas.mat  = x$spas.mat,
+        spas.red  = spas.red,
+        row.pool  = row.pool,
+        col.pool  = col.pool,
+        n.recaps  = sum(spas.mat[1:s, 1:t]))
+})
+```
+
+These rules gave the following augmented matrix
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+temp <- spas.mat[[1]]
+cbind(rbind(temp$spas.red, c(temp$col.pool, NA)), c(temp$row.pool,NA,NA))
+   
+```
+
+The main $s \times t$ matrix is the number of fish released in each week and
+recaptured in each week as seen before
+
+The second-to-final final column is the number of fish tagged, released, but never recaptured.
+The final column are the pooling-rules from the automated system. For example, weeks with have
+the same value will be pooled, i.e., if the pooling vector is c(1,1,3,4,5,6, 10,10,10,10),
+then weeks 1 and 2 are pooled and weeks 7 to 10 are pooled.
+
+The second-to-final row is the number of unmarked fish captured in the *Canyon* during this statistical week.
+The final row are the pooling rules for the columns following the same convention as the pooling rules
+for rows.
+
+Note that if the pooling vector is c(1,1,1,...,1) then all rows/or all columns are pooled.
+
+The complete list of automated pooling rules is found in Appendix C
+
+A summary of the number of rows and columns after pooling and the total number of recaptures are:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# check the number of rows and columns after pooling
+temp <- plyr::ldply(spas.mat, function (x){
+   s <- length(unique(x$row.pool))
+   t <- length(unique(x$col.pool))
+   recaps <- sum(x$spas.mat[1:(nrow(x$spas.mat)-1), 1:(ncol(x$spas.mat)-1)])
+   data.frame(Species=x$Species, 
+              Year   =x$Year, 
+              s=s, t=t, nrecap=recaps,
+              problem=ifelse(s<=t, " ", "*****"))
+})
+
+#temp[temp$problem != " ",]
+
+temp.wide <- tidyr::pivot_wider(temp,
+                          id_cols="Year",
+                          names_from="Species",
+                          values_from=c("s","t",nrecap))
+
+kable(temp.wide[,c("Year",
+                 # "s_CH","t_CH","nrecap_CH",
+                   "s_CO","t_CO","nrecap_CO",
+                   "s_SK","t_SK","nrecap_SK",
+                   "s_ST","t_ST","nrecap_ST")], row.names=FALSE,
+      caption="Summary of final poolings for SPAS",
+      col.names=c("Year",
+                 #"# rows","# cols","# recaps", 
+                  "# rows","# cols","# recaps",  
+                  "# rows","# cols","# recaps", 
+                  "# rows","# cols","# recaps"),
+      digits=c(0,  
+#                  0,0,0 
+                   0,0,0, 
+                   0,0,0,
+                   0,0,0))  %>% 
+      add_header_above(c(" " = 1, 
+#                        "Chinook "=3,
+                         "Coho"=3,
+                         "Sockeye"=3,
+                         "Steelhead"=3)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+```
+
+Notice that in the case of small number of recaptures, complete pooling (e.g., $s=1$ is required)
+such as in the later years for Coho Salmon, and most years of steelhead.
+
+### Fitting the SPAS models
+
+The SPAS (**reference**) program was used to fit a Stratified-Petersen with the automated pooling:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+
+# fit the spas models
+spas.mat <- plyr::llply(spas.mat, function (x){
+   cat("\n\n***** Starting SPAS fit for ", x$Species, "  ", x$Year, "\n")
+   #browser()
+   spas.fit <- SPAS.fit.model(paste(x$Species, "-", x$Year),
+                                    x$spas.red,
+                                    row.pool.in=x$row.pool,
+                                    col.pool.in=x$col.pool,optMethod.control = list(maxit = 100000)
+   )
+   x$spas.fit <- spas.fit
+   x
+})
+```
+
+A complete list of the fitting results is found in Appendix E.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,include=FALSE}
+# print the spas model results
+plyr::l_ply(spas.mat, function (x){
+   cat("\n\n***** Starting SPAS fit for ", x$Species, ' ' , x$Year, "\n")
+   #browser()
+   SPAS.print.model(x$spas.fit)
+   #input <- readline(prompt="OK?")
+})
+
+```
+
+
+The following is a comparison of the Chapman and SPAS estimates of abundance
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# extract chapman and SPAS estimate of population size
+pp.spas <- plyr::ldply(spas.mat, function (x){
+   chapman    <- x$spas.fit$est$N.Chapman
+   chapman.se <- x$spas.fit$se $N.Chapman
+   spas    <- x$spas.fit$est$real$N
+   spas.se <- x$spas.fit$se$real$N
+   spas.final.s <- length(unique(x$spas.fit$input$row.pool.in))
+   spas.final.t <- length(unique(x$spas.fit$input$col.pool.in))
+   if(spas.se > 1000000){
+     spas    <- NA
+     spas.se <- NA
+     spas.final.s <- NA
+     spas.final.t <- NA
+   }
+   if(x$n.recaps <15){  # just too few to do any stratified estimator
+     spas    <- NA
+     spas.se <- NA
+     spas.final.s <- NA
+     spas.final.t <- NA
+   }
+   data.frame(Species=x$Species, 
+              Year=x$Year, 
+              chapman    = chapman, 
+              chapman.se = chapman.se,
+              spas=spas, 
+              spas.se=spas.se,
+              spas.final.s = spas.final.s,
+              spas.final.t = spas.final.t)
+})
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+temp <- pp.spas[,-1]
+
+kable(temp, row.names=FALSE,
+      caption="Comparison of SPAS and Pooled-Petersen estimators",
+      col.names=c("Species","Year",
+                  "Estimate","SE",
+                  "Estimate","SE","s","t"),
+      digits=c(0,0, 0,0,  0,0,0,0))  %>% 
+      add_header_above(c(" " = 2, 
+                         "Pooled Petersen"=2,
+                         "Stratified Petersen"=4)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+Notice that when $s=1$ (complete pooling of rows), the estimates are virtually identical,
+with the difference due the Chapman correction applied to the Pooled Petersen estimator,
+that cannot be applied to the SPAS estimator. If the number of recaptures is too small,
+the SPAS estimator is not computed.
+
+A plot of the two estimates is:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# find the ratio of the estimators for each species
+ratio <- plyr::ddply(pp.spas, c("Species"), plyr::summarize,
+                     ratio    = exp( mean(log(spas),   na.rm=TRUE) -mean(log(chapman),    na.rm=TRUE)),
+                     ratio.se = exp( mean(log(spas.se), na.rm=TRUE)-mean(log(chapman.se), na.rm=TRUE))
+         )
+
+ggplot(data=pp.spas, aes(x=chapman, y=spas))+
+   ggtitle("SPAS vs Chapman estimates of abundance")+
+   geom_point()+
+   geom_errorbar (aes(ymin=pmax(0,spas-2*spas.se), ymax=spas+2*spas.se))+
+   geom_errorbarh(aes(xmin=pmax(0,chapman-2*chapman.se), xmax=chapman+2*chapman.se))+
+   geom_abline(intercept=0, slope=1)+
+   geom_text(aes(label=Year))+
+   geom_text(data=ratio, aes(label=paste("GMean S:C ", round(ratio,2))), x=-Inf, y=Inf, hjust=0, vjust=1.5)+
+   xlab("Chapman estimate (95% ci)")+
+   ylab("SPAS estimate (95% ci)")+
+   facet_wrap(~Species, ncol=2, scales="free")
+```
+
+The estimates from the stratified analysis are very similar to those from the
+pooled-Petersen but the uncertainty of the SPAS estimates is larger
+than the uncertainty of the Pooled-Petersen estimator.
+
+A plot of the ratio of the standard errors is:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data=pp.spas, aes(x=chapman.se, y=spas.se))+
+   ggtitle("SPAS vs Chapman standard errors of abundance")+
+   geom_point()+
+   geom_abline(intercept=0, slope=1)+
+   geom_text(aes(label=Year))+
+   geom_text(data=ratio, aes(label=paste("GMean SE S:C ", round(ratio.se,2))), x=-Inf, y=Inf, hjust=0, vjust=1.5)+
+   facet_wrap(~Species, ncol=2, scales="free")
+
+```
+
+As expected, the Stratified-Petersen estimates tend to have a larger standard errors than
+the Chapman estimator.
+
+## Summary
+
+While the tests for equal marked fraction and equal capture proportion indicate that 
+a stratified-Petersen may be preferable, the differences between the estimates
+under the two approach is minimal and no temporal stratification appears to be required.
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+########################################################################################
+########################################################################################
+########################################################################################
+########################################################################################
+```
+
+# Incorporating Toboggan Creek Coho recoveries
+
+Additional recoveries of unmarked and marked fish occur at Toboggan Creek for Coho Salmon from 2018 to 2021.
+
+As noted:
+
+> Toboggan creek is a tributary to the Bulkley River upstream of Witset (Moricetown) canyon. 
+> There is a Coho Salmon hatchery on this creek that does adipose clipping on its releases, 
+> as well as wild fish spawning both above and below the weir. 
+> The weir is located about 3 km upstream of the mouth of the creek. 
+> It is intended as a full census but occasionally needs to be laid down 
+> during the season because it is susceptible to fall flooding. 
+> Because of this, pink tags are put out for fish going upstream of the weir to 
+> get a mark-resight during stream walks. 
+> We’re still not 100% sure how the previous biologist was using these numbers, 
+> but I think it’s not overly important for this analysis. 
+> I think it’s enough to use the weir recapture, and to know that in some years it is a 
+> census (like 2021) and for most other years it is only catching most of the returning coho. 
+> When tagged coho are caught, the tag number, sex and hatchery/wild status are recorded. 
+> The same are recorded for every other coho as well. 
+
+## Data files - OLD
+
+The Toboggan Creek (*T.Creek*) data is (manually) split into two files
+
+- Recaptured tag numbers has a list of recaptured tag numbers (but not tag color)
+and the date the fish was handled.
+There are a few tag numbers that are missing, i.e., a tagged fish was captured, but the
+tag number could not be read. 
+- A list of the total number of Coho handled (marked and unmarked) and the total number
+ of marked Coho handled by date. This file does not have the tag numbers.
+
+## Data file - NEW
+
+A new workbook has been created with individual records for each handled at Toboggan Creek in the *IndividualFish* worksheet.
+We extracted the data from this new sheet.
+
+### Comparison of recaptures
+
+A comparison of the recaptures at Toboggan Creek from the two methods is:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# do some basic comparisions
+# cat("Previous data\n")
+# xtabs(~Species+Year, data=t.tagrecoveries,     exclude=NULL, na.action=na.pass)
+# 
+# cat("\n\n2023 Worksheet\n")
+# xtabs(~Species+Year, data=t.tagrecoveries.new, exclude=NULL, na.action=na.pass)
+
+```
+
+The number of recaptures is basically the same across the two databases with additional data prior to 2018 and now data for 2022.
+.**What happened to 2017 data**?
+
+
+### Comparison of total fish handled
+
+Here is a comparison of the total fish handled (*CO* only) from the old files and the newer workbook.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# cat("Previous data\n")
+# xtabs(total.coho ~ Species+Year, data=t.markedunmarked, exclude=NULL, na.action=na.pass)
+# 
+# cat("\n\n2023 Worksheet\n")
+# xtabs(total.coho ~ Species+Year, data=t.markedunmarked.new, exclude=NULL, na.action=na.pass)
+
+```
+
+Values seem to match fairly well; there is now additional data prior to 2018 and now data for 2022.
+**There appears to be an additional 400 fish handled in 2021 in the new workbook compared to the old files. 
+Check this out.**
+
+**What happened to 2017 data**?
+
+Here is the daily comparison for 2021 between the two sources where the totals don't match:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# temp1 <- t.markedunmarked    [ t.markedunmarked    $Year == 2021,]
+# temp2 <- t.markedunmarked.new[ t.markedunmarked.new$Year == 2021,]
+# temp <- merge(temp1, plyr::rename(temp2, c("total.coho"='total.coho.new',
+#                                            'total.marked'='total.marked.new')), by=c("Year","Date","Species"), all=TRUE)
+# temp[is.na(temp)]<- 0
+# 
+# select <- temp$total.coho != temp$total.coho.new |
+#           temp$total.marked != temp$total.marked.new
+# temp$diff.total.coho = temp$total.coho - temp$total.coho.new
+# temp$diff.total.marked = temp$total.marked - temp$total.marked.new
+# temp$Year <- NULL
+# temp$Species <- NULL
+# print(temp[select,], row.names=FALSE)
+```
+
+**The new workbook for Toboggan Creek will be used for the remainder of the analyses below.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+t.markedunmarked     <- t.markedunmarked.new
+t.tagrecoveries      <- t.tagrecoveries.new
+
+```
+
+
+## Data editing
+
+### Total fish handled
+
+A summary of the total number of Coho Salmon (excluding jacks) captured at Toboggan Creek and the number that are
+marked is
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cat("Total Coho handled \n")
+# Total number of fish handled
+xtabs(total.coho~Species+Year, data=t.markedunmarked, exclude=NULL, na.action=na.pass)
+
+
+cat("\n\nTotal number of marked Coho salmon fish recaptured \n")
+# The cross tabulations jive (hurrah)
+xtabs(total.marked~Species+Year, data=t.markedunmarked, exclude=NULL, na.action=na.pass)
+#xtabs(~Year, data=t.tagrecoveries, exclude=NULL, na.action=na.pass)
+
+```
+
+### Missing tag number
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+select <- is.na(t.tagrecoveries$RecapturedTagNumber)
+n.missing.tag <- sum(select)
+
+if(n.missing.tag >0)print(t.tagrecoveries[select,])
+
+t.tagrecoveries <- t.tagrecoveries[!select,]
+
+```
+
+There were `r n.missing.tag` records where a tagged fish was recaptured, but the tag number could not
+be read. These will be dropped from the analysis.
+
+### Checking the tag numbers against marks in the main dataset
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+t.tagrecoveries$SYT <- paste0("CO",".", t.tagrecoveries$Year,"." ,t.tagrecoveries$RecapturedTagNumber)
+
+applied <- apply(outer(t.tagrecoveries$SYT, all.fish$SYT, "%in%"),1,any, na.rm=TRUE)
+n.not.applied <- sum(!applied)
+t.notapplied <- t.tagrecoveries[!applied,]
+```
+
+We checked the recorded tag numbers against the set of tags applied to Coho Salmon at the 
+*Campground* or *Canyon*. There were `r nrow(t.notapplied)` tag numbers that could not be matched as summarized by year below:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+xtabs(~Species+Year, data=t.notapplied, exclude=NULL, na.action=na.pass)
+```
+
+The detailed list of non-matching number is:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+t.notapplied <- t.notapplied[ order(t.notapplied$Year, t.notapplied$RecapturedTagNumber),]
+as.data.frame(t.notapplied)
+```
+
+We then searched against the same tag number in other species and found that many of the
+missing tags above were applied to fish from previous years and/or a different species (steelhead).
+**Does this mean that the counts of unmarked fish
+also likely contain steelhead??**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+select <- apply(outer(all.fish$myTagNumber, t.notapplied$RecapturedTagNumber, "=="),1,any, na.rm=TRUE)
+sum(select)
+
+print(all.fish[select, c("Year","Species","TagStatus","AppliedColor","AppliedTagNumber","RecapturedTagNumber","Location_Code")], row.names=FALSE)
+
+
+
+```
+
+We will consider such "recaptures" as unmarked fish.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+select2 <- !t.notapplied$RecapturedTagNumber %in% all.fish[select, "myTagNumber"]
+```
+
+
+There were also `r sum(select2)` fish whose tag number was not in the tagging data base.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+as.data.frame(t.notapplied[select2,])
+
+```
+
+
+This was due to a number of different reasons, some of which will require a fix to the database such as how double tagging is handled.
+
+We will  treat such recaptures where we could not match the tag number as unmarked fish.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+t.tagrecoveries <-  t.tagrecoveries[ !t.tagrecoveries$RecapturedTagNumber %in% t.notapplied$RecapturedTagNumber,]
+```
+
+This gives the following revised summary of tags recovered by year:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cat("Total Coho with marked after removing non-matches \n")
+xtabs(~Species+Year, data=t.tagrecoveries, exclude=NULL, na.action=na.pass)
+
+```
+
+## Creating capture histories that include Toboggan Creek
+
+We can treat the *T.Creek* as a third capture location. 
+Only Coho Salmon from `r min(t.markedunmarked$Year)` to
+`r max(t.markedunmarked$Year)` (inclusive) are considered.
+**Note that some years have NO Toboggan Creek data??**
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cat("Missing data from Toboggan Creek for \n")
+temp <- setdiff(min(t.markedunmarked$Year):max(t.markedunmarked$Year), unique(t.markedunmarked$Year))
+temp
+t.creek.usefulyears <- setdiff(min(t.markedunmarked$Year):max(t.markedunmarked$Year), temp)
+
+```
+
+
+We will use the captures and recaptures to create a capture history for each fish. Because
+of problems with the color of tag not always being recorded or different colors appears to be used
+or the same tag, the capture history will be based on the tag number only (i.e., color will be ignored).
+Unfortunately, it may confound tag numbers across multiple colors within the same species-year in some cases.
+
+We will construct the three digit capture history representing tagging/recapture on the *Campground*,
+the *Canyon* and *Toboggan Creek* using ONLY the tag number within species-year combination.
+
+Many fish captured for the first time in the *Canyon* are not marked but are then are released. So we are 
+unable for determine for unmarked fish if they were recaptured multiple times at the *Campground*, 
+*Canyon* and then at *Toboggan Creek*.
+
+Consequently, we modify the capture history creation in a similar way as is done for mark-resight studies.
+We only track marked fish in the capture histories, and keep a separate tally at occasion 2 and 
+3 of the number of unmarked fish captured. So a history of *010* would refer to a fish tagged
+at the *Canyon* and then not recaptured and would exclude fish that were captured at the *Canyon*
+and not tagged
+
+This means that only histories 100, 110, 101, 111, 010, and 011 will be generated, along
+with counts of unmarked fish captured at occasion 2 (*Canyon*) and occasion 3 (*Toboggan Creek*).
+We again apply similar rules to create the capture histories
+
+- Records are created to appended to the previous records from the Toboggan Creek data by
+appending a Location_Code of *T.Creek*, and *TagStatus* of *R* for recaptures.
+- If a tag number is present, and if the *TagStatus* is *A* or *AR*,  and the location is *Campground*, then 
+this is treated as a capture, tagged, and released at occasion 1 (first digit of history set to 1)
+- If a tag number is present and if the *TagStatus* is *A* or *R* or *AR*,  and the location is *Canyon*, 
+then this is treated as a capture, tagged, and released at occasion 2 (second digit of history set to 1).
+- If a tag number is present and if the *TagStatus* is *A* or *R* or *AR*,  and if the location is *T.Creek*, 
+then this is treated as a capture at occasion 3 (third digit of history set to 1).
+
+The following is a summary of the capture histories constructed by year for the Coho Salmon.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create the capture histories including Toboggan Creek
+
+# first limit all.fish to coho in in years where creek data is present
+all.fish.red <- all.fish[ all.fish$Species == "CO" &
+                          all.fish$Year  %in% t.creek.usefulyears,]
+
+#xtabs(~TagStatus+ Location_Code+Year, data=all.fish.red, exclude=NULL, na.action=na.pass)
+
+# create records for the marked fish at T.Creek that we append to the all.fish.red
+t.tagrecoveries$myTagNumber   <- t.tagrecoveries$RecapturedTagNumber
+t.tagrecoveries$TagStatus     <- "R"
+t.tagrecoveries$Location_Code <- "T.Creek"
+t.tagrecoveries$Sample_Date   <- t.tagrecoveries$Date
+t.tagrecoveries$ISOweek       <- lubridate::isoweek(t.tagrecoveries$Sample_Date)
+
+#xtabs(~Location_Code+TagStatus, data=t.tagrecoveries, exclude=NULL, na.action=na.pass)
+
+t.all.fish <- plyr::rbind.fill( all.fish.red, t.tagrecoveries)
+xtabs(~Location_Code+TagStatus, data=t.all.fish, exclude=NULL, na.action=na.pass)
+
+write.csv(t.all.fish[ t.all.fish$Year==2021,], "t.all.fish.csv", row.names=FALSE)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# we will also include the date of any recapture for later analysis
+t.cap.hist <- plyr::ddply(t.all.fish, c("Species","Year","myTagNumber"), function(x){
+   # if a tag number is present, then this is a single fish and away we go
+   freq=0
+   hist="..."
+   w1 <- NA
+   w2 <- NA
+   w3 <- NA
+   
+   date1 <- as.Date(NA)
+   date2 <- as.Date(NA)
+   date3 <- as.Date(NA)
+   
+   if(x$Species[1] %in% c("SK","ST","CH"))stop("This species not supported for Tobaggan Creek")
+   if(!is.na(x$myTagNumber[1])){  # applied in campground or recaptured (from those released) on canyon or t.creek
+     #browser()
+     freq <- 1
+     hist <- "000"
+     select <- x$TagStatus %in% c("A","AR")      & x$Location_Code=="Campground"
+     if( any(select)) {
+        substr(hist,1,1) <- '1'
+        w1 <- min(x$ISOweek[select])
+        date1 <- mean(x$Sample_Date[select], na.rm=TRUE)
+     }
+     select <- x$TagStatus %in% c("R","A","AR")  & x$Location_Code=="Canyon"
+     if( any(select)){
+        substr(hist,2,2) <- '1' 
+        w2 <- min(x$ISOweek[select])
+        date2 <- mean(x$Sample_Date[select],na.rm=TRUE)
+     }
+     select <- x$TagStatus %in% c("A","R","AR")      & x$Location_Code=="T.Creek"
+     if( any(select)) {
+        substr(hist,3,3) <- '1'
+        w3 <- min(x$ISOweek[select])
+        date3 <- mean(x$Sample_Date[select], na.rm=TRUE)
+     }
+   }
+   data.frame(hist=hist, freq=freq, w1=w1, w2=w2, w3=w3,
+              date1=date1, date2=date2, date3=date3)
+})
+
+
+# exclude histories that are missing
+t.cap.hist <- t.cap.hist[ t.cap.hist$hist != "...",]
+
+# now to compute the total number of unmarked fish seen at location 2 and location 3
+# for location 3, we need to look at the t.markedunmarked 
+
+t.unmarked <- plyr::ddply(t.all.fish, c("Species","Year","myTagNumber"), function(x){
+   t.unmarked.1 <- 0
+   select <- x$TagStatus %in% c(NA) & x$Location_Code=="Canyon"
+   t.unmarked.2 <- sum(select)
+   data.frame(t.unmarked.1=t.unmarked.1,
+              t.unmarked.2=t.unmarked.2)
+})
+t.unmarked <- plyr::ddply(t.unmarked, c("Species","Year"), plyr::summarize,
+                      t.unmarked.1 =sum(t.unmarked.1),
+                      t.unmarked.2 =sum(t.unmarked.2))
+
+t.markedunmarked.sum <- plyr::ddply(t.markedunmarked, c("Species","Year"), plyr::summarize,
+                                    total.coho = sum(total.coho))
+t.tagrecoveries.sum  <- plyr::ddply(t.tagrecoveries,  c("Species","Year"), plyr::summarize,
+                                    total.coho.marked = length(Year))
+t.markedunmarked.sum <- merge(t.markedunmarked.sum, t.tagrecoveries.sum)
+t.markedunmarked.sum$t.unmarked.3 <- t.markedunmarked.sum$total.coho - t.markedunmarked.sum$total.coho.marked
+
+t.unmarked <- merge(t.unmarked, t.markedunmarked.sum[,c("Species","Year","t.unmarked.3")])
+  
+```
+
+
+Here are the tag histories from the first analysis where recaptures only at the *Canyon* were considered
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+xtabs(freq~ Year+hist, data=cap.hist[cap.hist$Species=="CO" &
+                                    cap.hist$Year %in% t.creek.usefulyears,])
+```
+
+The capture histories when *T.Creek* is included are:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+xtabs(freq ~Year+hist, data=t.cap.hist, exclude=NULL, na.action=na.pass)
+```
+
+Notice that the counts for the previous history *10* are split into the histories *100* and *101*;
+the counts for the history *11* are split into the histories *111* and *110*;
+and the counts for the history *00* are split into the histories *000* and *001*.
+
+The old history *01* must be treated with care because of the treatment of unmarked fish that are captured
+at the *Canyon* and either harvested (lost on capture) or released unmarked. We need to also consider
+the number of unmarked fish captured at the *Canyon* and *T.Creek* are
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+t.unmarked
+
+#xtabs(~TagStatus+ paste0(Location_Code,"..",Sex)+Year, data=all.fish.red, exclude=NULL, na.action=na.pass)
+```
+
+
+The count for old history *01* include both unmarked fish caught in the *Canyon* and new tags applied
+in the *Canyon* that could be recaptured in Toboggan Creek. Only the latter should appear in the new histories
+*010* and *011* and remainder will be counted in the unmarked fish at each occasion. So the count
+for old history *01* should match the sum of the count for new history *010*, *011* and the number of unmarked 
+at occasion 2.
+
+There are fish with a history of *000* and *001* which should never occur. As before these fish will be ignored.
+
+## Fitting the mark-resight model.
+
+The data now allows us to fit an abundance model that accounts for the multiple capture
+occasions, the addition of additional marked fish at the *Canyon*, the recapture
+of marked fish from the *Campground* and the *Canyon* in Toboggan Creek and the
+the capture of unmarked fish at the *Canyon* and *Toboggan Creek* that are not all marked.
+
+A simple model is the Schnabel (1938), where the estimator takes the form
+$$\widehat{N}_{Schnabel}=\frac{\sum_{i=1}^k n_i \times M_i}{\sum_{i=1}^k m_i}$$
+where
+
+- $n_i$ is the number of fish examined at occasion $i$;
+- $M_i$ is the number of marked fish available in the population just before occasion $i$;
+- $m_i$ is the number of marked fish observed at occasion $i$.
+
+Notice that at $i=1$, both $M_i$ and $m_i$ are zero. If $k=2$ this reduces to the
+familiar Petersen estimator. This estimator is a weighted average of the individual Petersen estimator
+using pairs of occasions (1,2) and (2,3).
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+# summarize the capture history data to get the summary statistics
+# which we will modify to account for the unmarked seen at each occasion
+#xtabs(freq ~Year+hist, data=t.cap.hist, exclude=NULL, na.action=na.pass)
+#t.unmarked
+
+
+t.fit <- plyr::llply(unique(t.cap.hist$Year), function(Year, t.cap.hist, t.unmarked){
+   # select this years data
+   cat("\n\nStarting Year ", Year, "\n")
+   #if(Year==2017)browser()
+   t.cap.hist = t.cap.hist[ t.cap.hist$Year==Year,]
+   t.unmarked = t.unmarked[ t.unmarked$Year==Year,]
+   
+   print(xtabs(freq ~Year+hist, data=t.cap.hist, exclude=NULL, na.action=na.pass))
+   print(t.unmarked)
+
+   # get the summary statistics
+   t.cap.hist$h1 <- ifelse(substr(t.cap.hist$hist,1,1)=='1',1, 0) 
+   t.cap.hist$h2 <- ifelse(substr(t.cap.hist$hist,2,2)=='1',1, 0) 
+   t.cap.hist$h3 <- ifelse(substr(t.cap.hist$hist,3,3)=='1',1, 0) 
+   t.cap.summary <- FSA::capHistSum(t.cap.hist[,c("h1","h2","h3")])
+   #print(t.cap.summary$sum)
+
+   # we now modify the summary statistics to account for the unmarked captured at location 2 and 3
+   t.cap.summary$sum$n[2] <- t.cap.summary$sum$n[2] + t.unmarked$t.unmarked.2
+   t.cap.summary$sum$n[3] <- t.cap.summary$sum$n[3] + t.unmarked$t.unmarked.3
+   print(t.cap.summary$sum[,c("n","m","M")])
+   
+   # get the population estimate
+   fit <- FSA::mrClosed(
+         M=t.cap.summary$sum$M,
+         n=t.cap.summary$sum$n,
+         m=t.cap.summary$sum$m,
+         #R=t.cap.summary$sum$R,
+         method="Schnabel")
+   fit.ci <- confint(fit)
+   #browser()
+   #plot(fit)
+   
+   list(Year=Year,
+        Species="CO",
+        fit=fit,
+        N    = fit$N,
+        N.lcl= fit.ci[1],
+        N.ucl= fit.ci[2],
+        N.se = (fit.ci[2]-fit.ci[1])/(2*1.96))
+  
+}, t.cap.hist = t.cap.hist,
+   t.unmarked = t.unmarked)
+
+
+
+```
+
+
+
+
+
+For example, consider the 2021 Coho Salmon data
+
+At the *Campground*, 317 tags were applied ($n_1$). Since this is the first occasion, the
+number of marked fish in the population just before sampling occurred ($M_1$) and the
+number of marked fish in the sample are both zero.
+
+Then at the *Canyon*, there are now 317 marked fish in the population ($M_2=317$)
+and 23 recaptures were found in 1053 examined fish. This gives a Petersen estimator of
+$$\widehat{N}_2 = \frac{1053 \times 317}{23}=14513$$ fish.
+
+An additional 756 tags were applied
+in the Canyon and 274 fish were harvested (and removed).
+
+Finally for the third occasion,there are now $317+756=1073$ marked fish in the population.
+A total of 2525 fish were examined, of which 55 are marked. This gives a Petersen estimator
+of
+$$\widehat{N}_3 = \frac{2525 \times 1073}{55}=49260$$ fish!
+
+The estimated population abundances from the Schnabel method and the original pooled-Petersen method are:
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+N.hat <- plyr::ldply(t.fit, function(x){
+  data.frame(Species=x$Species,
+             Year=x$Year,
+             N = x$N,
+             N.se=x$N.se,
+             N.lcl=x$N.lcl,
+             N.ucl=x$N.ucl)
+})
+
+temp <- merge(N.hat, plyr::rename(all.summary[,c("Species","Year","N.est","N.se")],
+                                  c("N.est"="PP.N.est",
+                                    "N.se" ="PP.N.se")), by=c("Species","Year"))
+
+kable(temp[,c("Species","Year","N","N.se","PP.N.est","PP.N.se")], row.names=FALSE,
+      caption="Estimated abundance from Schnabel method compared to Pooled-Petersen",
+      col.names=c("Species","Year",
+                  "Estimate","SE",
+                  "Estimate","SE"),
+      digits=c(0,0, 0,0, 0,0 ))  %>% 
+      add_header_above(c(" " = 2, 
+                         "Schnabel method"=2,
+                         "Pooled Petersen"=2)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+  
+```
+
+The final estimate for 2021 (around 39,000 fish) is a weighted average of the two individual estimates.
+
+Something has obviously gone wrong that the estimates for 2019 to 2021 are so much higher
+when the *T.Creek* data is used. For example, in 2021, the marked fraction at the *Canyon* is
+$23/1053=.0281$. But when the number of tags in the population is tripled from the new tagging
+at the *Canyon*, the marked fraction at *T.Creek* ($55/2525=.0217$) barely moves.
+
+A similar problem is seen for the other years
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# get the marked fractions at each sampling time
+mf <- plyr::ldply(t.fit, function(x){
+   #browser()
+   res <- data.frame(Species=x$Species, Year=x$Year,
+                     n=x$fit$n, M=x$fit$M, m=x$fit$m)
+   res$mf <- res$m/ res$n
+   res
+})
+
+kable(mf[,c("Species","Year","n","M","m","mf")], row.names=FALSE,
+      caption="Estimated marked fraction from Schnabel method",
+      col.names=c("Species","Year",
+                  "n","M","m","Marked fraction"),
+      digits=c(0,0, 0,0,0, 3 ))  %>% 
+      add_header_above(c(" " = 2, 
+                         "Summary stats"=3,
+                         " "=1)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+  
+```
+
+In many years, the number of new tags added at the *Canyon* does not affect the marked fraction
+which should NOT happen- adding marks to a closed population should increase the marked-fraction
+at every stage.
+
+We examined if the timing of the tags applied in the Campground and the Canyon and subsequently
+recaptured in the *T.Creek* sample:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# want to look at fish recovered at T.creek, and plot the date of application in the 
+t.tag.date <- t.cap.hist
+t.tag.date$where.applied <- NA
+t.tag.date$when.applied  <- as.Date(NA)
+t.tag.date$where.applied[ substr(t.tag.date$hist,1,1)=="1" ] <- "Campground"
+t.tag.date$when.applied [ substr(t.tag.date$hist,1,1)=="1" ] <- 
+      as.Date(t.tag.date$date1[ substr(t.tag.date$hist,1,1)=="1" ])
+t.tag.date$where.applied[ substr(t.tag.date$hist,1,2)=="01"] <- "Canyon"
+t.tag.date$when.applied [ substr(t.tag.date$hist,1,2)=="01"] <- 
+      as.Date(t.tag.date$date2[ substr(t.tag.date$hist,1,2)=="01"])
+t.tag.date$T.creek.recap <- substr(t.tag.date$hist,3,3)=="1"
+
+# we need to standardize the date so the plot appears on 1 panel properly
+t.tag.date$when.applied.jdate <- lubridate::yday(t.tag.date$when.applied)
+t.tag.date$Year <- t.tag.date$Year + 0.3*as.numeric(t.tag.date$where.applied=="Canyon")
+
+xtabs(~Year+where.applied, data=t.tag.date, exclude=NULL, na.action=na.pass)
+
+ggplot(data=t.tag.date, aes(x=when.applied.jdate, y=Year))+
+  ggtitle("Summary of when recaptured tags at T.Creek were applied relative to entire application timing")+
+  geom_point( position=position_jitter(h=.1), alpha=0.5)+
+  xlab("When tags applied (julian date)\nBottom row for each year is Campground\nTop row for each year is Canyon\nRed indicates a recaptured fish at T.Creek")+
+  geom_point(data=t.tag.date[t.tag.date$T.creek.recap,],
+             position=position_jitter(h=.1), color="red")+
+  scale_y_continuous(breaks=2000:3000)
+
+```
+
+A possible explanation for the results that we saw related to the distribution of the 
+tagging dates in the two locations.
+
+For example, in 2021, tagging at the Campground ran until julian date 245, but additional tagging at 
+the Canyon occurred after this date. If the portion of the run that goes to Toboggan Creek arrives prior
+to julian day 245, then tagging of the run after julian day 245 will never be seen in Toboggan Creek.
+
+**Is genetic data available from the tagging at the two sites?**
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+########################################################################################
+########################################################################################
+########################################################################################
+########################################################################################
+```
+
+# Incorporating Nanika snorkel survey data
+
+Additional recoveries of unmarked and marked fish occur at Nanika for Sockeye Salmon from 2001 to 2021.
+
+**NO details about this protocol are known**
+
+## Data files
+
+The data for the Nanika snorkel surveys consists of the total number of fish seen and the total number of
+tagged fish seen. Information about the tag numbers of tagged fish seen is unavailable.
+
+The first few records of the input data are:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+head(n.counts)
+```
+
+
+
+## Data editing
+
+Because the data are so "simple", no editing checks can be done.
+The Nanika count data starts in 2001, but the database only has data from 2012 onward.
+
+For example, it is not possible to check that tag numbers of the recaptured fish were
+actually applied in the year. 
+
+## Creating summary data that includes the Nanika snorkel dta
+
+We can treat the *N.Creek* as a third location. 
+Only Coho Salmon from `r min(n.counts$Year)` to
+`r max(n.counts$Year)` (inclusive) are considered.
+
+Because only the total number of fish seen and the total number of tagged fish seen during
+the snorkel survey are recorded, it is not possible to create capture histories for each fish
+because the tag number of tagged fish seen during the snorkel survey is unknown.
+
+The best we can do is create summary data ($n_i$, $M_i$ and $m_i$) as was used in the *Toboggan Creek*
+analysis.
+
+We start with the same summary statistic as created in the Pooled-Petersen. 
+This gives us $n_1$, $n_2$, and $m_2$. Then
+
+- By definition, $M_1$ is 0; $M_2$ is the number of tags applied at the *Campground*; $M_3$ is the number of tags
+applied at the *Campground* or *Canyon*.
+- By definition $m_1=0$. $m_3$ is the number of tagged fish seen during the snorkel survey at *N.Creek*
+- $n_3$ is the number of fish counted during the snorkel survey at *N.Creek*.
+
+The following is a summary of summary data by year for the Sockeye Salmon.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create the summary data including Nanika Creek
+
+# extract the summary statistics from the Pooled-Petersen Analysis
+n.summary <- cap.hist.wide[ cap.hist.wide$Species=="SK", c("Species","Year","n1","n2","m2")]
+n.summary$m1 <- 0
+n.summary$M1 <- 0
+
+n.summary$M2 <- n.summary$n1
+
+# add in the statistics at N.Creek
+n.summary <- merge(n.summary, plyr::rename(n.counts,
+                                           c("total.sockeye.counted"="n3",
+                                             "total.tags.observed"="m3")))
+
+# add the number of marks applied at the Canyon to the population total of marks
+all.fish.red.n <- all.fish[ all.fish$Species == "SK" &
+                          all.fish$Year    >= min(n.counts$Year) &
+                          all.fish$Year    <= max(n.counts$Year),]
+canyon.marks <- plyr::ddply(all.fish.red.n, c("Species","Year"), plyr::summarize,
+                         canyon.marks = sum(TagStatus %in% c("A")        & Location_Code == "Canyon"))
+n.summary <- merge(n.summary, canyon.marks)
+n.summary$M3 <- n.summary$M2 + n.summary$canyon.marks
+
+```
+
+
+The summary statistics are:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+kable(n.summary[,c("Species","Year",
+                   "n1","M1","m1",
+                   "n2","M2","m2", "canyon.marks",
+                   "n3","M3","m3")], row.names=FALSE,
+      caption="Summary statistics including Nanika snorkel survey",
+      col.names=c("Species","Year",
+                  "n1","M1","m1",
+                  "n2","M2","m2","Canyon tags applied",
+                  "n3","M3","m3"),
+      digits=c(0,0, 0,0,0, 0,0,0, 0, 0,0,0 ))  %>% 
+      add_header_above(c(" " = 2, 
+                         "Campground"=3,
+                         "Canyon"    =3,
+                         " "=1,
+                         "Nanika Creek"=3)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+
+```
+
+
+## Fitting the mark-resight model.
+
+We again use the Schnabel (1938) model as was done for the *Toboggan Creek* data.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+
+n.fit <- plyr::alply(n.summary,1, function(x){
+   cat("\n\nStarting Year ", x$Year, "\n")
+
+   # get the population estimate
+   fit <- FSA::mrClosed(
+         M=c(x$M1, x$M2, x$M3),
+         n=c(x$n1, x$n2, x$n3),
+         m=c(x$m1, x$m2, x$m3),
+         method="Schnabel")
+   fit.ci <- confint(fit)
+   #browser()
+   #plot(fit)
+   
+   list(Year=x$Year[1],
+        Species=x$Species[1],
+        fit=fit,
+        N    = fit$N,
+        N.lcl= fit.ci[1],
+        N.ucl= fit.ci[2],
+        N.se = (fit.ci[2]-fit.ci[1])/(2*1.96))
+  
+})
+
+```
+
+
+
+
+The estimated population abundances from the Schnabel method and the original pooled-Petersen method are:
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+N.hat <- plyr::ldply(n.fit, function(x){
+  data.frame(Species=x$Species,
+             Year=x$Year,
+             N = x$N,
+             N.se=x$N.se,
+             N.lcl=x$N.lcl,
+             N.ucl=x$N.ucl)
+})
+
+temp <- merge(N.hat, plyr::rename(all.summary[,c("Species","Year","N.est","N.se")],
+                                  c("N.est"="PP.N.est",
+                                    "N.se" ="PP.N.se")), by=c("Species","Year"))
+
+kable(temp[,c("Species","Year","N","N.se","PP.N.est","PP.N.se")], row.names=FALSE,
+      caption="Estimated abundance from Schnabel method compared to Pooled-Petersen",
+      col.names=c("Species","Year",
+                  "Estimate","SE",
+                  "Estimate","SE"),
+      digits=c(0,0, 0,0, 0,0 ))  %>% 
+      add_header_above(c(" " = 2, 
+                         "Schnabel method"=2,
+                         "Pooled Petersen"=2)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+  
+```
+
+The Schnabel estimates again tend to be larger than the Pooled-Petersen estimators.
+Unfortunately, because the individual tag numbers seen in N.Creek are not available,
+we cannot examine the timing of the recoveries in the application process as we did for Coho Salmon
+
+
+A summary of the marked-fractions over time is:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# get the marked fractions at each sampling time
+mf <- plyr::ldply(n.fit, function(x){
+   #browser()
+   res <- data.frame(Species=x$Species, Year=x$Year,
+                     n=x$fit$n, M=x$fit$M, m=x$fit$m)
+   res$mf <- res$m/ res$n
+   res
+})
+
+kable(mf[,c("Species","Year","n","M","m","mf")], row.names=FALSE,
+      caption="Estimated marked fraction from Schnabel method",
+      col.names=c("Species","Year",
+                  "n","M","m","Marked fraction"),
+      digits=c(0,0, 0,0,0, 3 ))  %>% 
+      add_header_above(c(" " = 2, 
+                         "Summary stats"=3,
+                         " "=1)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+  
+```
+
+There does not appear to be a consistent increase in the marked fraction, i.e., if the
+number of tags applied in the population doubles, the marked fraction should also double.
+
+
+
+# Summary and Conclusions
+
+- No apparent need for stratification by time
+- Unclear why the T.Creek analysis fails so badly in 2020 and 2021. Perhaps the tagging operations the Canyon miss most
+of the fish going to T.Creek because of temporal misalignment or behavioral differences.
+- Maybe similar problems when including the N.Creek data.
+
+
+
+
+
+# Appendix A - Tag numbers with multiple colors
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+mult.colors
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+kable(mult.colors, row.names=FALSE, longtable=TRUE,
+      caption="Tag numbers with multiple colors within a species-year combination",
+      col.names=c("Species","Year","Tag Number","# colors","Color list"),
+      digits=c(0,0,0,0,0))  %>% 
+#      add_header_above(c(" " = 1, " "=2, "95% CI" = 2, " " = 1, " " = 1)) %>%
+      column_spec(column=c(1:4),       width="2cm") %>%
+      column_spec(column=5,            width="6cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, 
+                    latex_options = c("repeat_header","HOLD_position"))
+
+
+```
+
+# Appendix B - Details of the tests for equal marked fractions
+
+Here are the detailed tables and test statistics for the tests of equal marked-fraction.
+If there are no entries for a Species-Year, the number of recaptures is too small to construct a test.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plyr::l_ply(equal.MF, function(x){
+   cat("\n\n\n*** ",x$Species, " ", x$Year, "\n")
+   print(x$mf)
+   print(x$chi.test)
+   print(x$fish.test)
+})
+```
+
+# Appendix C - Details of the tests for equal recovery proportions
+
+Here are the detailed tables and test statistics for the tests of equal recovery proportions
+If there are no entries for a Species-Year, the number of recaptures is too small to construct a test.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plyr::l_ply(equal.RF, function(x){
+   cat("\n\n\n*** ",x$Species, " ", x$Year, "\n")
+   print(x$rf)
+   print(x$chi.test)
+   print(x$fish.test)
+})
+```
+
+# Appendix D - Details on stratified Petersen matrices and automated pooling rules
+
+The main $s \times t$ matrix is the number of fish released in each week and
+recaptured in each week as seen before
+
+The second-to-final final column is the number of fish tagged, released, but never recaptured.
+The final column are the pooling-rules from the automated system. For example, weeks with have
+the same value will be pooled, i.e., if the pooling vector is c(1,1,3,4,5,6, 10,10,10,10),
+then weeks 1 and 2 are pooled and weeks 7 to 10 are pooled.
+
+The second-to-final row is the number of unmarked fish captured in the *Canyon* during this statistical week.
+The final row are the pooling rules for the columns following the same convention as the pooling rules
+for rows.
+
+Note that if the pooling vector is c(1,1,1,...,1) then all rows/or all columns are pooled.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# review the input matrices
+plyr::l_ply(spas.mat, function (x){
+   cat("\n\n\n*** ", x$Species, x$Year, "\n")
+   print(cbind(rbind(x$spas.red, c(x$col.pool, NA)), c(x$row.pool,NA,NA)))
+   #invisible(readline(prompt="OK?"))
+})
+```
+
+# Appendix E - Complete set of SPAS results
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# print the spas model results
+plyr::l_ply(spas.mat, function (x){
+   cat("\n\n***** Starting SPAS fit for ", x$Species, ' ' , x$Year, "\n")
+   #browser()
+   SPAS.print.model(x$spas.fit)
+   #input <- readline(prompt="OK?")
+})
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+```
+
+
+# References
+
+Darroch, J. N. (1961). 
+The two-sample capture-recapture census when tagging and sampling are stratified. 
+Biometrika, 48, 241–260. https://www.jstor.org/stable/2332748
+
+Plante, N., L.-P Rivest, and G. Tremblay. (1988). 
+Stratified Capture-Recapture Estimation of the Size of a Closed Population. 
+Biometrics 54, 47-60. https://www.jstor.org/stable/2533994
+
+Schnabel, Z.E. 1938. 
+The estimation of the total fish population of a lake. 
+American Mathematician Monthly, 45:348-352.
+
+Carl James Schwarz (2019). 
+SPAS: Stratified-Petersen Analysis System. R package version 2020.1.1.
+https://CRAN.R-project.org/package=SPAS
+  
+Schwarz, C. J., & Taylor, C. G. (1998). 
+The use of the stratified-Petersen estimator in fisheries management with an 
+illustration of estimating the number of pink salmon (Oncorhynchus gorbuscha) 
+that return to spawn in the Fraser River. Canadian Journal of Fisheries and Aquatic Sciences, 55, 281–296.
+https://doi.org/10.1139/f97-238
+
