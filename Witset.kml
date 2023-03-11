@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document>
+	<name>Witset.kml</name>
+	<StyleMap id="m_ylw-pushpin00">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#s_ylw-pushpin000</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#s_ylw-pushpin_hl000</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Style id="s_ylw-pushpin000">
+		<IconStyle>
+			<scale>1.1</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/paddle/pink-blank.png</href>
+			</Icon>
+			<hotSpot x="32" y="1" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+		<ListStyle>
+			<ItemIcon>
+				<href>http://maps.google.com/mapfiles/kml/paddle/pink-blank-lv.png</href>
+			</ItemIcon>
+		</ListStyle>
+	</Style>
+	<Style id="s_ylw-pushpin_hl000">
+		<IconStyle>
+			<scale>1.3</scale>
+			<Icon>
+				<href>http://maps.google.com/mapfiles/kml/paddle/pink-blank.png</href>
+			</Icon>
+			<hotSpot x="32" y="1" xunits="pixels" yunits="pixels"/>
+		</IconStyle>
+		<ListStyle>
+			<ItemIcon>
+				<href>http://maps.google.com/mapfiles/kml/paddle/pink-blank-lv.png</href>
+			</ItemIcon>
+		</ListStyle>
+	</Style>
+	<Folder>
+		<name>Witset</name>
+		<open>1</open>
+		<Placemark>
+			<name>Nanika Snorkel</name>
+			<visibility>0</visibility>
+			<open>1</open>
+			<LookAt>
+				<longitude>-127.4632050527822</longitude>
+				<latitude>54.09212725268726</latitude>
+				<altitude>0</altitude>
+				<heading>-0.3736044187105256</heading>
+				<tilt>0</tilt>
+				<range>6702.58214661401</range>
+				<gx:altitudeMode>relativeToSeaFloor</gx:altitudeMode>
+			</LookAt>
+			<styleUrl>#m_ylw-pushpin00</styleUrl>
+			<Point>
+				<gx:drawOrder>1</gx:drawOrder>
+				<coordinates>-127.4680878989132,54.09153552640458,0</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>Toboggan Fish fence</name>
+			<open>1</open>
+			<LookAt>
+				<longitude>-127.2917880584543</longitude>
+				<latitude>54.9253882441477</latitude>
+				<altitude>0</altitude>
+				<heading>-0.01678779438251789</heading>
+				<tilt>14.95738724994103</tilt>
+				<range>1422.696053425796</range>
+				<gx:altitudeMode>relativeToSeaFloor</gx:altitudeMode>
+			</LookAt>
+			<styleUrl>#m_ylw-pushpin00</styleUrl>
+			<Point>
+				<gx:drawOrder>1</gx:drawOrder>
+				<coordinates>-127.2928347828855,54.92619958610423,0</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>Witset Canyon</name>
+			<visibility>0</visibility>
+			<open>1</open>
+			<LookAt>
+				<longitude>-127.3286503343701</longitude>
+				<latitude>55.0134522539361</latitude>
+				<altitude>0</altitude>
+				<heading>3.632142557356433e-09</heading>
+				<tilt>0</tilt>
+				<range>926.3062006487053</range>
+				<gx:altitudeMode>relativeToSeaFloor</gx:altitudeMode>
+			</LookAt>
+			<styleUrl>#m_ylw-pushpin00</styleUrl>
+			<Point>
+				<gx:drawOrder>1</gx:drawOrder>
+				<coordinates>-127.3291320622079,55.0136870264791,0</coordinates>
+			</Point>
+		</Placemark>
+	</Folder>
+</Document>
+</kml>
