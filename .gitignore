@@ -39,3 +39,7 @@ vignettes/*.pdf
 .Renviron
 *.xlsx
 *.csv
+*.png
+*.html
+*.docx
+*.pdf
