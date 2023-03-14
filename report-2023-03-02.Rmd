@@ -2265,23 +2265,22 @@ t.fit <- plyr::llply(unique(t.cap.hist$Year), function(Year, t.cap.hist, t.unmar
 
 
 
-For example, consider the 2021 Coho Salmon data
+For an example of this method, consider the 2021 Coho Salmon data:
 
 At the *Campground*, 317 tags were applied ($n_1$). Since this is the first occasion, the
 number of marked fish in the population just before sampling occurred ($M_1$) and the
 number of marked fish in the sample are both zero.
 
 Then at the *Canyon*, there are now 317 marked fish in the population ($M_2=317$)
-and 23 recaptures were found in 1053 examined fish. This gives a Petersen estimator of
-$$\widehat{N}_2 = \frac{1053 \times 317}{23}=14513$$ fish.
+and 23 recaptures were found in 1054 examined fish. This gives a Petersen estimator of
+$$\widehat{N}_2 = \frac{1054 \times 317}{23}=14527$$ fish.
 
-An additional 756 tags were applied
-in the Canyon and 274 fish were harvested (and removed).
+An additional 757 tags were applied in the Canyon and 245 fish were harvested (and removed).
 
-Finally for the third occasion,there are now $317+756=1073$ marked fish in the population.
-A total of 2525 fish were examined, of which 55 are marked. This gives a Petersen estimator
+Finally for the third occasion,there are now $317+757=1074$ marked fish in the population.
+A total of 2917 fish were examined, of which 59 are marked. This gives a Petersen estimator
 of
-$$\widehat{N}_3 = \frac{2525 \times 1073}{55}=49260$$ fish!
+$$\widehat{N}_3 = \frac{2917 \times 1074}{59}=53099$$ fish!
 
 The estimated population abundances from the Schnabel method and the original pooled-Petersen method are:
 
