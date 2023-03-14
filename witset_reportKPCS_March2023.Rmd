@@ -1863,7 +1863,10 @@ Holtby B., Finnegan B., Chen D., and Peacock D. 1999. Biological Assessment of S
 Chapman D. 1954. The Estimation of Biological Populations. The Annals of Mathematical Statistics
 Vol. 25(1). https://www.jstor.org/stable/2236510 
 
-Milne D. 1950. Moricetown Falls as a Hazard to Salmon Migration. Bulletin of Fisheries Resource Board of Canada 86. 
+Milne D. 1950. Moricetown Falls as a Hazard to Salmon Migration. Bulletin of Fisheries Resource Board of Canada 86.
+
+Schwarz C. and Bonner S. 2011. A spline-based capture-mark-recapture model applied to estimating the number of steelhead within the Bulkley River passing the Moricetown Canyon in 2001-2010. Report on file, DFO Smithers.
+
 
 
 # Appendix A - Example of Field Data Sheets used in 2022
