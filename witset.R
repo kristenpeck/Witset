@@ -4,12 +4,12 @@
 # Author: Kristen Peck
 # Created: fall 2021, updated Fall/winter 2022/23
 
-library(tidyverse) #; citation("tidyverse")
-library(readxl) #; citation("readxl")
-library(lubridate) #; citation("lubridate")
+library(tidyverse) ; citation("tidyverse")
+library(readxl) ; citation("readxl")
+library(lubridate) ; citation("lubridate")
 library(recapr)
-library(gridExtra) #; citation("gridExtra")
-#citation("knitr")
+library(gridExtra) ; citation("gridExtra")
+citation("knitr")
 
 # load exported tables for Dates, SK, CO, CH, and ST
 # note that these are the unaltered tables exported as-is from 
@@ -209,7 +209,7 @@ plot.fallback
 plot.fallbackreascend <- ggplot(table.fallback)+
   geom_line(aes(x=year, y=percent.fallbacks.reascend, col=Species), size=1)+
   geom_point(aes(x=year, y=percent.fallbacks.reascend, col=Species, 
-                 size=fallbacks.recap.canyon, alpha = 0.5))+
+                 size=fallbacks.recap.canyon),alpha = 0.5) +
   geom_line(aes(x=year, y=percent.camptocanyon, col=Species), linetype="dashed")+
   scale_y_continuous(breaks=seq(0,max(table.fallback$percent.camptocanyon, na.rm=T),1))+
   scale_x_continuous(breaks=seq(min(table.fallback$year),
@@ -799,7 +799,7 @@ ggplot(rbind(COCamp,COCanyon))+
 
 
 
-#generate estimates using only campground OR canyon and toboggan
+#generate LP estimates using only campground OR canyon and toboggan
 #This might help point out if there is differential survival/tag loss from
 # one location or the other?
 
@@ -813,27 +813,31 @@ dirty.est.tobog <- recap.origin.tobog  %>%
   arrange(year, Location_Code)
 dirty.est.tobog
 
-ggplot(dirty.est.tobog)+
-  geom_point(aes(x=year, y=Chap, col=Location_Code))+
+plot.LPby.origin.tobog <- ggplot(dirty.est.tobog)+
+  geom_point(aes(x=year, y=Chap, col=Location_Code, size=newtags.applied), alpha=0.5)+
   geom_errorbar(aes(x=year, ymax=Chap+CI95Chap,ymin=Chap-CI95Chap, 
                     col=Location_Code), width=0.1)+
   geom_line(aes(x=year, y=Chap, col=Location_Code))+
   labs(y="Chapman estimate from different tagging \nLocations to Toboggan +/- 95CI")
+plot.LPby.origin.tobog
 
 
 
-
-
+#proportional recapture of applied tags from each origin. Why does this vary from year to year?
+# Does this indicate pre-spawn mortality in some years? Likely changed with how long the fence was in
 
 plot.recap.origin.tobog <- ggplot(recap.origin.tobog)+
   geom_line(aes(x=year, y=percent.recap, col=Location_Code))+
   geom_point(aes(x=year, y=percent.recap, col=Location_Code, 
                  size=newtags.applied),alpha=.5)+
   scale_y_continuous(breaks = seq(floor(min(recap.origin.tobog$percent.recap)),
-                                max(recap.origin.tobog$percent.recap),1))+
+                                round(max(recap.origin.tobog$percent.recap),1)))+
   labs(y="% of applied tags recaptured at Toboggan",col="Location",
        size = "# tags applied")
 plot.recap.origin.tobog
+
+
+
 
 
 # #time between tagging and recovery at Toboggan
