@@ -43,3 +43,5 @@ vignettes/*.pdf
 *.html
 *.docx
 *.pdf
+*.jpg
+*.accdb
