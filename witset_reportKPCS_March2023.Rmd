@@ -224,6 +224,19 @@ We looked at this somewhat with fallback - whether Canyon fish that dropped back
 plot.recap.origin.tobog
 ```
 
+One last additional check is that of serial recaptures  - i.e. fish that are recaptured many times at a particular location rather than moving on upstream from the campground (Figure Camp.serial.recaptures) or the canyon (Figure Canyon.serial.recaptures) immediately following tagging. In the analysis we will be using only the first recapture, so this additional information is thrown out.
+
+```{r Figure Camp.serial.recaptures, echo=F, message=F, warning=F, fig.width=6, fig.height= 5, fig.cap="Figure: Serial recaptures of fish at the Campground."}
+plot.camp.recaps
+
+```
+
+
+```{r Figure Canyon.serial.recaptures, echo=F, message=F, warning=F, fig.width=6, fig.height= 5, fig.cap="Figure: Serial recaptures of fish at the Canyon."}
+plot.canyon.recaps
+
+```
+
 ## Mark-Recapture Estimates
 
 ### In-Canyon Pooled Petersen
@@ -1725,7 +1738,7 @@ kable(coho.all <- coho.temp %>%
   kableExtra::kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
 ```
 
-``` {r Figure 17,  echo=F, message=F, warning=F}
+``` {r Figure 17,  echo=F, message=F, warning=F, fig.cap="Figure 17: Coho estimates and standard error comparisons by model."}
 coho.all.se <- coho.all %>% 
   select(Species, Year, seInCanyonLP,seSPAS,seSchnabel,seFinneganLP) %>% 
   pivot_longer(!c(Species, Year), names_to="se.type", values_to = "se") %>% 
@@ -1745,6 +1758,14 @@ ggplot(coho.all.est, aes(x=Year), size=1.5)+
 
 ```
 
+We can see how well these estimates track with an external, related data source. We can start with Tyee for Coho (Figure TYEE), since the Bulkley population is a large component of the Skeena coho.
+
+```{r Figure TYEE, echo=F, message=F, warning=F, fig.width=6, fig.height=5,fig.cap="Figure: Total of daily index for coho at Tyee by year."}
+
+plot.tyee.CO
+```
+
+
 ``` {r Table 25, echo=F, message=F, warning=F}
 kable(sock.all <- sock.temp %>%
   select(Species, Year, InCanyonLP = PP.N.est, seInCanyonLP = PP.N.se, Schnabel=N, seSchnabel = N.se) %>% 
@@ -1760,7 +1781,7 @@ kable(sock.all <- sock.temp %>%
 
 ```
 
-```{r Figure 18, echo=F, message=F, warning=F, fig.cap="Figure 18: Estimate and error comparison depending for Sockeye."}
+```{r Figure 18, echo=F, message=F, warning=F, fig.cap="Figure 18: Estimate and error comparison for Sockeye."}
 
 sock.all.se <- sock.all %>% 
   select(Species, Year, seInCanyonLP,seSPAS,seSchnabel,seFinneganLP) %>% 
@@ -1781,6 +1802,9 @@ ggplot(sock.all.est, aes(x=Year), size=1.5)+
   
 ```
 
+
+
+
 # Discussion
 
 ## Comparison of Mark-Recapture Models
@@ -1791,7 +1815,7 @@ The pooled LP estimates the in-canyon (i.e. from Campground to Canyon) populatio
 
 ### Stratification by time IN-Canyon 
 
-There is no apparent need for stratification by time, since most of the stratified estimates are similar to a fully pooled Petersen estimate. **KP: Are the estimates of error are more realistic in the stratified method.**
+There is no apparent need for stratification by time, since most of the stratified estimates are similar to a fully pooled Petersen estimate. **KP: Are the estimates of error more realistic in the stratified method.**
 
 ### Schnabel estimates using three capture occasions
 
