@@ -31,44 +31,60 @@ library(tidyverse)
 #                                 sheet="Tag_Data_Chinook",
 #                                 .name_repair="universal")
 
-#KP changed to read from excel export:
-ch.tagged <- readxl::read_excel("Tag_Data_Chinook.xlsx",.name_repair="universal")
 
-head(ch.tagged)
-
-
-
-# Coho
-# co.tagged <- readxl::read_excel(workbook,
-#                                 sheet="Tag_Data_Coho",
-#                                 .name_repair="universal")
-#KP changed to read from excel export:
-co.tagged <- readxl::read_excel("Tag_Data_Coho.xlsx",.name_repair="universal")
-
-head(co.tagged)
+nms <- names(read_excel("Tag_Data_Sockeye.xlsx", n_max = 0))
+ct <- ifelse(grepl("^AppliedColor2", nms), "text", 
+             ifelse(grepl("^AppliedTagNumber2", nms), "numeric","guess"))
 
 
-# Sockeye
-# so.tagged <- readxl::read_excel(workbook,
-#                                 sheet="Tag_Data_Sockeye",
-#                                 .name_repair="universal")
-#KP changed to read from excel export:
-so.tagged <- readxl::read_excel("Tag_Data_Sockeye.xlsx",.name_repair="universal")
+witset.raw.upto22 <- rbind(read_excel("Tag_Data_Sockeye.xlsx",col_types = ct,
+                                      .name_repair="universal"),
+                           read_excel("Tag_Data_Coho.xlsx",col_types = ct,
+                                      .name_repair="universal"),
+                           read_excel("Tag_Data_Chinook.xlsx",col_types = ct,
+                                      .name_repair="universal"),
+                           read_excel("Tag_Data_Steelhead.xlsx",col_types = ct,
+                                      .name_repair="universal")) 
 
-head(so.tagged)
+# from db v3: 2023 
 
+witset.raw.upto23 <- rbind(read_excel("Tag_Data_Sockeye2023.xlsx",col_types = ct,
+                                      .name_repair="universal"),
+                           read_excel("Tag_Data_Coho2023.xlsx",col_types = ct,
+                                      .name_repair="universal"),
+                           read_excel("Tag_Data_Chinook2023.xlsx",col_types = ct,
+                                      .name_repair="universal"),
+                           read_excel("Tag_Data_Steelhead2023.xlsx",col_types = ct,
+                                      .name_repair="universal")) 
 
-# steelhead
-# st.tagged <- readxl::read_excel(workbook,
-#                                 sheet="Tag_Data_Steelhead",
-#                                 .name_repair="universal")
-#KP changed to read from excel export:
-st.tagged <- readxl::read_excel("Tag_Data_Steelhead.xlsx",.name_repair="universal")
+all.fish <- rbind(witset.raw.upto22, witset.raw.upto23)
 
-head(st.tagged)
+# #KP changed to read from excel export:
+# ch.tagged <- readxl::read_excel("Tag_Data_Chinook.xlsx",.name_repair="universal")
+# 
+# # Coho
+# # co.tagged <- readxl::read_excel(workbook,
+# #                                 sheet="Tag_Data_Coho",
+# #                                 .name_repair="universal")
+# #KP changed to read from excel export:
+# co.tagged <- readxl::read_excel("Tag_Data_Coho.xlsx",.name_repair="universal")
+# 
+# # Sockeye
+# # so.tagged <- readxl::read_excel(workbook,
+# #                                 sheet="Tag_Data_Sockeye",
+# #                                 .name_repair="universal")
+# #KP changed to read from excel export:
+# so.tagged <- readxl::read_excel("Tag_Data_Sockeye.xlsx",.name_repair="universal")
+# 
+# # steelhead
+# # st.tagged <- readxl::read_excel(workbook,
+# #                                 sheet="Tag_Data_Steelhead",
+# #                                 .name_repair="universal")
+# #KP changed to read from excel export:
+# st.tagged <- readxl::read_excel("Tag_Data_Steelhead.xlsx",.name_repair="universal")
+# 
 
-
-all.fish <- rbind(ch.tagged, co.tagged, so.tagged, st.tagged)
+# all.fish <- rbind(ch.tagged, co.tagged, so.tagged, st.tagged)
 
 
 
@@ -82,8 +98,10 @@ all.fish <- plyr::rename(all.fish, c("Recaptured.number"="RecapturedTagNumber",
 #                                 sheet="Tag_Data_Sample_Dates",
 #                                 .name_repair="universal")
 #KP changed to read from excel export:
-sample.dates <- readxl::read_excel("Tag_Data_Sample_Dates.xlsx",
-                                   .name_repair="universal")
+sample.dates <- rbind(read_excel("Tag_Data_Sample_Dates.xlsx",
+                                   .name_repair="universal"),
+                              read_excel("Tag_Data_Sample_Dates2023.xlsx",
+                                         .name_repair="universal"))
 
 
 sample.dates$Sample_Date <- as.Date(sample.dates$Sample_Date)
@@ -117,11 +135,11 @@ xtabs(~Species+Year, data=all.fish, exclude=NULL, na.action=na.pass)
 xtabs(~TagStatus+Year+Species, data=all.fish, exclude=NULL, na.action=na.pass)
 
 xtabs(~TagStatus+Location_Code, data=all.fish, exclude=NULL, na.action=na.pass)
-xtabs(~TagStatus+CaudalPunch+Species, data=all.fish, exclude=NULL, na.action=na.pass)
+xtabs(~TagStatus+AppliedCaudalPunch+Species, data=all.fish, exclude=NULL, na.action=na.pass)
 
-xtabs(~CaudalPunch+Year+Species, data=all.fish, exclude=NULL, na.action=na.pass)
+xtabs(~AppliedCaudalPunch+Year+Species, data=all.fish, exclude=NULL, na.action=na.pass)
 
-xtabs(~CaudalPunch+Year, data=all.fish, exclude=NULL, na.action=na.pass)
+xtabs(~AppliedCaudalPunch+Year, data=all.fish, exclude=NULL, na.action=na.pass)
 
 
 ## Fish tag info is recorded in the AppliedColor/AppliedTagNumber, RemovedColor/RemovedTagNumber, and Recaptured color/Recapture number fields
@@ -137,7 +155,7 @@ all.fish$RemovedTagColor  <- NULL
 # check the double tagged fish.
 select <- all.fish$TagStatus=="A2"
 sum(select)
-temp <- all.fish[select, c("Year","Sample_Date","Location_Code","Species","TagStatus","AppliedColor","AppliedTagNumber","RecapturedColor","RecapturedTagNumber","Comments.x")]
+temp <- all.fish[select, c("Year","Sample_Date","Location_Code","Species","TagStatus","AppliedColor","AppliedTagNumber","AppliedTagNumber2","RecapturedColor","RecapturedTagNumber","Comments.x")]
 temp <- temp[ order(temp$Species, temp$Sample_Date),]
 temp
 
@@ -222,7 +240,7 @@ rm(ch.tagged, co.tagged, so.tagged, st.tagged)
 # xtabs(~Year, data=t.tagrecoveries, exclude=NULL, na.action=na.pass)
 
 # Now the data appears to be in a workbook that I can massage as needed
-t.data <- readxl::read_excel("TobogganFenceData_MASTER-copy1-Mar-2023.xlsx",
+t.data <- readxl::read_excel("TobogganFenceData_MASTER-copy29-Mar-2023.xlsx",
                              sheet='IndividualFish',
                              .name_repair="universal") %>% 
   filter(year >= 2018)
