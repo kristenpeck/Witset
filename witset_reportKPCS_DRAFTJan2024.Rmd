@@ -1,0 +1,1915 @@
+---
+title: "Witset Mark-Recapture Review DRAFT"
+author: "Kristen Peck and Carl Schwarz"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  html_document:
+    toc: yes
+    number_sections: yes
+    toc_depth: 3
+  # pdf_document:
+  #   keep_tex: no
+  #   number_sections: yes
+  #   toc: yes
+  #   fig_caption: no
+  #   extra_dependencies: float
+fig_caption: no
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE, fig.width=7, fig.height=5}
+knitr::opts_chunk$set(echo = TRUE)
+
+source("witset.R") #source KP's script
+#source("read.dataCS.R") #source CS's script
+
+library(kableExtra)
+library(SPAS)
+
+options(knitr.kable.NA = '')
+```
+
+# Introduction
+
+## Bulkley River Context
+
+The Bulkley River is a seventh-order tributary to the Skeena River (FIDQ BC, 2024). It flows north and west before joining the Skeena River at the town of Hazelton and supports significant anadromous fish populations of Coho Salmon *(Oncorhynchus kisutch)*, Chinook Salmon *(O. tshawytscha)*, Sockeye Salmon *(O. nerka)*, Pink Salmon *(O. gorbuscha)* and Steelhead (*O. mykiss*; Gottesfeld and Rabnett 2007). The Coho populations in the Bulkley are a component of the Middle Skeena Conservation Unit, and the Sockeye populations are a mix of lake type conservation units from the Upper Bulkley, Maxan, Morice and Atna Lakes and river types as a component of the Skeena River Conservation Unit (Holt and Ciruna 2007).
+
+## Witset Mark-Recapture Program Background
+
+Scoping for a program to assess the population size of returning adult Bulkley-Morice Coho started in approximately 1996 with support from the Skeena Green Plan (W. Joseph, *pers. comm.*). Several locations in the Lower Bulkley River were assessed with seine nets but the deep run and side channels downstream of the Witset Canyon were the most successful and consistent in catch rates. The project was eventually extended to earlier in the season to improve catch rates for Sockeye salmon. Protocols were altered to try to catch Chinook Salmon but it was believed that the timing of Chinook was too early to provide a representative estimate with mark-recapture at times when the project could operate, which is limited by water levels (W. Joseph, *pers. comm.*).
+
+The Witset (formerly Moricetown) Canyon is a natural cascade/canyon pinch point on the Bulkley River. It is a traditional and current fishing location for the Wet’suwet’en Nation, and is located within the village of Witset. The canyon bedrock has been modified over the past century, generally with the goal of increasing the rate or success of passage of salmon returning to spawn upstream. In 1929, the Dominion Department of Fisheries blasted a modified fishway into the eastern bank (river right) of the canyon with little observed benefit to upstream fish passage. In the mid-1940s, the canyon was assessed by DFO as still posing a partial fish passage barrier, particularly at lower water levels (Milne 1950). The canyon was soon after modified to include a fishway on the west bank (river left) of the canyon to promote salmon upstream passage (Holtby et al. 1999). Sockeye, Coho, Chinook and Pink Salmon pass upstream through the canyon in significant numbers, and it is at and just downstream of this fishway where the Witset tagging program occurs.
+
+The Witset Mark-Recapture program began in 1998 and has occurred every year since then, following relatively similar methodology. Coho Salmon, Sockeye Salmon and Steelhead are intercepted below the canyon using a beach seine, or on the edge of the cascade near the top of the canyon using dipnets. Chinook Salmon are enumerated and have been marked on occasion throughout the program’s history, but are not currently a part of the mark-recapture component of the program. Pink Salmon have never been marked and are not enumerated except those harvested in the Excess to Salmon Spawning Requirements (ESSR) fishery by the Wet’suwet’en. Coho, Sockeye and Steelhead are marked and recaptured in the canyon, but a fraction of the Coho are also intercepted upstream through a fence operated on Toboggan Creek and a component of the Sockeye run is assessed for re-sight rates in the Nanika River. The Witset mark-recapture program, combined with the Toboggan Creek fence and the Nanika snorkel survey, is the main program used to estimate Coho and Sockeye escapement to the Bulkley-Morice watershed upstream of Witset Canyon.
+
+## Toboggan Creek
+
+Toboggan Creek is a tributary to the Bulkley River whose confluence is approximately 11 river kilometers upstream of Witset canyon. The Toboggan Creek fish fence is located approximately 3 river kilometers upstream of the mouth. The Toboggan Creek adult assessment program has operated every year in some form since 1989, and combined with a hatchery coded-wire tag program is an indicator stock program for Northern Boundary Coho salmon (Fisheries and Oceans Canada North Coast Stock Assessment Branch 2022). The adult program currently operates as a fish fence with a back-up mark-reight program if the fence is not fish-tight for the entire season. This program intercepts the majority of the returning Coho to Toboggan Creek in most years.
+
+## Nanika River
+
+The Nanika River is a tributary to Morice Lake and a major spawning location for Bulkley-Morice Sockeye Salmon. The river mouth is approximately 215 river kilometers upstream of Witset Canyon. This spawning stream is part of the Morice Sockeye Conservation Unit and, based on aerial escapement counts, makes up a large component of the Bulkley-Morice Sockeye.
+
+## Rationale for a Review 
+
+Methods for estimating the Bulkley-Morice Sockeye and Coho using the Witset mark-recapture program have not been thoroughly reviewed since the program’s inception. Annual mark-recapture estimates for Sockeye and Coho Salmon have used pooled total marks applied at Witset and tag re-sight rates or recaptures at Nanika River or Toboggan Creek to estimate a pooled Lincoln-Peterson with a Chapman modifier (Chapman 1954). Data were not annually reviewed for errors until recently and only a preliminary estimate of the returns to Witset Canyon were estimated for Sockeye and Coho for reporting out preliminary estimates. Data from the Toboggan Creek fence has also not been thoroughly reviewed for errors. A percent tag loss was sometimes reduced from the total number of Witset tags applied to Coho, usually in the realm of 5-10%, but no reliable study results are available to support this assumption. For Sockeye, a minimum of one snorkel re-sight survey was conducted annually in September in the upper Nanika River by DFO and the Office of the Wet’suwet’en staff and represented the final encounter occasion for Sockeye. The raw data by observer, dates of these surveys or survey conditions are not consistently available, but the total fish counted and the total tags observed were recorded in a spreadsheet on file. A 5-10% tag loss between Witset and Nanika was inconsistently assumed, with limited tag loss studies from dead pitch conducted in a couple of years in the early 2000s reporting different rates of tag loss than are applied currently (SKR 2003, draft report on file, DFO Smithers). Recaptures between the Campground and Canyon were ignored. Overall, there is likely more utility to these data than has been used in the past, but given the complexity of these programs a review was necessary to ensure that this program is effectively meeting its objectives.
+
+In addition to Coho and Sockeye, Chinook and Steelhead were also included in the Witset Mark-Recapture program but not included in this review, apart from presented catch summary information. Chinook were marked with a caudal punch some years but data have not been reviewed in any detail. Steelhead are under the management jurisdiction of the Province of British Columbia and a review of population estimation methods for the Witset program already exists (Schwarz and Bonner 2010).
+
+## Objectives of this Review 
+
+1. Review current analysis methods for calculating Coho and Sockeye Salmon returns to the Witset Canyon against alternatives and decide on the most appropriate analysis.
+
+2. Recommend program improvements and minimum samples sizes to achieve acceptable levels of accuracy and precision for Coho and Sockeye escapement estimates to the Witset Canyon. **Note that this objective has not been addressed in this report yet**
+
+# Methods
+
+## Project Timing
+
+The Witset mark-recapture program starts each season when water levels drop to approximately 3.9 m at the hydrological station at Smithers (08EE005; W. Joseph, pers. comm). Start date also depends on when fish are observed in the canyon and when crews and equipment can be mobilized, generally between early and late July. The project is intended to continue until the first week of October to capture the majority of the Coho run, but has often ended between early September and early October due to unfavourable conditions or staffing shortages (**Table 1**). Both the campground and canyon crews generally sample five days a week (Monday to Friday) throughout the season. The Toboggan Creek fish fence, which is the last encounter occasion for coho tagged at the Witset Canyon, is usually installed in early to middle of August, operated seven days per week and removed in early November. The snorkel survey at Nanika, which is the final resight occasion for the sockeye tagged at the Witset Canyon, is generally scheduled for mid-September when the sockeye are at approximate peak spawn timing, though some years this survey has been repeated more than once in September. 
+
+## Project Components
+
+```{r Map 1 map-canyon, echo=FALSE, fig.cap="Map 1: Location of Witset Canyon mark-recapture program components: the Campground Beach Seine (downstream) and the Canyon Dipnet (upstream).", fig.width= 8, out.width = '100%'}
+knitr::include_graphics("WitsetCanyon_map2024.png")
+```
+
+```{r Map 2 map-all, echo=FALSE, fig.cap="Map 2: Location of all Mark-Recapture program locations: the Campground Beach Seine and the Canyon Dipnet, the Toboggan Creek fish fence, and the Nanika River snorkel.",fig.width= 8, out.width = '100%'}
+knitr::include_graphics("WitsetMRProject_map2024.png")
+```
+### Campground Beach Seine and Canyon Dipnet
+
+Witset Canyon is located approximately 314 river kilometers upstream of the mouth of the Skeena River, and approximately 54 river kilometers upstream of the Bulkley River confluence with the Skeena River. There are two main tagging and recapture sites on the mainstem Bulkley River for the Witset mark-recapture program: the Campground and the Canyon sample sites (**Map 1 and Map 2**). The Campground sampling site is downstream of Witset Canyon and sampling is by beach seine using a river boat on different beaches depending on the depth of pool and debris loads. The morphology of this area has changed over the years and methods have adjusted to maximize crew safety and fish caught (G. Michell, *pers. comm.*). Fish are brought in by the seine to shallow water, measured for length and sex, sorted, and either harvested, tagged, recognized as a recapture and released, or released without a tag. Fish are seined periodically from the morning to mid-afternoon with breaks for fish processing and to reduce recaptures within the same day. Since 2018 the number of sets per day has been quite variable over the years, from the lowest average number of sets per day in 2023 (`r round(min(effort.camp.byyr$ave.daily.sets),1)` sets), to the highest in 2019 (`r round(max(effort.camp.byyr$ave.daily.sets),1)` sets), and variable lengths of time per sets depending on the crew, catch and conditions.
+
+The Canyon site is located approximately 350 m upstream of the Campground site and fish are caught by fishers with long handled dipnets as they ascend through the canyon. Fish are carried in cradles to a fish holding tank, then dipped out either for harvest; transported to the fish processing table to be measured and tagged; recorded as a recapture, measured and released; or released without a tag. Often releases without a tag are small fish or those in poor condition. This sampling occurs continuously throughout the day by two and sometimes three dipnet fishers and separate fish processing staff. The dipnet effort throughout the day and season depends on a number of factors, including fishing success, support staff, whether they are called on to harvest other fish (e.g. Pink Salmon for the ESSR fishery) and site conditions.
+
+Harvest for Food, Social and Ceremonial (FSC) purposes is conducted concurrently with the tagging program by program staff. Coho, Chinook and Sockeye are harvested by the crews out of the dipnet and seine net catch and recorded by the tagging crews. These fish are selected and removed mainly from the untagged component of the catch for the Witset program, while individual community fishers sometimes harvest tagged fish. These harvested tagged fish are occasionally recorded in the Witset MR database when fishers drop or turn in tags and appear as a “R” status and “harvested”, but in most years the majority of these were not recorded. There does not appear to be any preference or deterrence for harvest of a tagged fish by the community according to staff on site, but people who return tags get entered into a draw for a prize.
+
+### Toboggan Creek Fish Fence
+
+Hatchery Coho raised and released from the Toboggan Creek hatchery and natural origin Coho return to this creek to spawn in the fall. The majority of Coho spawners are intercepted at the Toboggan Creek Fish Fence. All hatchery Coho are coded-wire tagged and adipose clipped before they are volitionally released as smolts to the creek, and thus are recognizable by their external adipose clip as returning adults. The fish weir is intended to be a full census but occasionally needs to be laid down during the season when water and debris conditions are unfavourable. The weir blew out in 2017 and was fully redesigned in 2018 and 2019 to be more hardy to higher water conditions. Thus in some years the Toboggan Fence is a census of Coho passing upstream of the weir location (like in 2021, 2022 and 2023) and for most other years it is only intercepting the majority of the returning Coho. Coho are redirected to an enclosed trap box at the edge of the weir and are then dipped out individually and assessed for their tag and hatchery status, tag number (if it is a recapture from the Witset Mark-Recapture program), gender and for some subset of fish the fork length is measured and scale samples collected for ageing, though this has been limited mainly to broodstock until recent years. Anchor tags are removed from the Witset Coho recaptures and saved for later quality assurance, and the fish are released upstream.
+
+### Nanika River Snorkel
+
+At least one re-sight snorkel survey of two large pool/runs near the origin of Nanika River has been conducted annually by two to three experienced staff in September. These pool/runs are where the majority of Sockeye spawn in the Nanika River (BC16, K.Peck *pers. obs.*). The swimmers spread out within the run and count the number of anchor tagged and untagged fish, though no individual tag identifiers are recorded. No other major tagging program is concurrent with the Witset mark-recapture program, so the tags are only Witset tags. The goal of the re-sight survey is not to get a complete count of the Sockeye in these pool/runs, but to verify the tagged to untagged number of Sockeye for a large proportion of the run. In some years there has also been a dead pitch component at this site to estimate tag losses by recognizing the secondary caudal punch on freshly dead (post-spawn) fish, and to validate the snorkel survey mark-resight rate. A dead pitch occurred in 2003 and 2022. The snorkel survey information will be used here rather than the dead pitch since it has remained constant over the time series of interest. 
+
+### Tagging Protocol
+
+Coho and Sockeye are tagged with t-bar anchor tags with a unique 4- or 5-digit number, which allows for individual identification within a year, directly below the dorsal fin. Fish are intended to be selected randomly for tagging and the goal is to tag a consistent proportion of the Coho and Sockeye runs through the canyon. Coho are usually tagged with green or blue tags and Sockeye with brightly coloured yellow, pink or orange tags for easy resightability during the Nanika snorkel. Recaptures are recognized by the presence of a coloured anchor tag, the tag number and colour are recorded and the fish is re-released. Fish status is recorded as *A* or *A2* for newly tagged fish, *R* for recaptured fish, *AR* for recaptured fish where a new tag was applied, and *NA* for fish not tagged, which were either harvested or released (distinguished by a *Harvested* check box). 
+
+A secondary mark of a caudal hole punch (top caudal lobe for Canyon fish, bottom caudal lobe for Campground fish) is applied at initial tagging to assess tag loss rates, but due to inconsistencies of secondary mark application and recognition errors over the years, we cannot use tag loss rates with confidence. More consistent efforts were made to record tags lost **en route** from Witset to Toboggan Creek fence in 2023, and a subset of daily fish (up to 100 per day) were carefully examined for a secondary mark. 
+
+### Meristic and Fish Health Data 
+
+Species, fish gender (from visual external assessment) and fork length (to the nearest cm) were recorded for nearly all Sockeye, Coho, Chinook and Steelhead caught, including those harvested and released untagged. Additional information on scale loss, net marks, sea lice and any other external health observations were prompted and recorded on the datasheets. If this additional information was not recorded, it was either because it was not present or not looked for. Post-orbital hypural length was not measured, but the majority of Coho and Sockeye salmon encountered were still somewhat chrome at this stage of their migration for most of the season.
+
+Mortality caused by tagging or fish handling is difficult to obtain from our current protocol, but in 2023 the Witset datasheet was simplified to note if fish were released in *good* or *bad* condition, which may indicate their subsequent survival to their recapture locations upstream. Bad condition did not always indicate that this was due to handling and was often from pre-existing conditions, but the compounding effects of handling may have increased mortality risk.
+
+### Data Management
+
+Data collected at both the campground and canyon are recorded on standardized data sheets (see **Appendix A** for example), organized and stored in the Wet’suwet’en Fisheries Office at the end of each day and entered digitally throughout the sampling season or at the end of the season. Data are entered into a Microsoft Access database (“Witset_Fish_Tagging_Data_V3.accdb”) using forms to aid data input (“Witset_Fish_Tagging_Data_Entry_Tool_V3.accdb”), which were both updated in 2023. Raw data sheets are kept in binders by year and sampling site for future reference. A recent review of the data, data analysis and sampling protocol was initiated by DFO Stock Assessment to address any changes that needed to be adopted into the protocol to increase accuracy, precision, and utility of the results. The data review consisted of queries to address field recording errors, transcription errors, lost data, incorrectly recorded species, and patterns of inconsistent methodology within and among seasons. Data sheets were revised in 2022 and again in 2023 to improve field data collection and database structural elements were adjusted to clarify certain inconsistencies.
+
+### Environmental Data
+
+Daily environmental data are not consistently collected at the Witset Canyon over the years but an Environment Canada water station on the mainstem Bulkley River near Smithers (08EE005) measures river discharge and there are no major tributaries between this station and the Witset Canyon program. River discharge from this station was accessed through the R package tidyhydat (Albers 2017).
+
+## Data Analysis
+
+Here we will summarize the data from 2018 to 2023 from the Witset Mark-recapture program, the Toboggan Creek fence and Nanika snorkel surveys as they relate to the mark-recapture program. The years in the current review were limited to these because they have been the most carefully reviewed. Toboggan Creek Fence data was also only recently entered in the same detail as the fish data were collected (i.e. one fish per row - only summary tallies were previously available), and work is ongoing to enter data further back in time.
+
+### Missing/Bad Data
+
+In cases where we know a batch of fish were tagged but are missing from the data sheets (e.g. a coloured tag was seen but fumbled before it could be read, or tags were recaptured but never recorded as applied), we conservatively back-filled these data for the largest of cases. This was done with the goal of streamlining comparison between methods, and filling in knowledge when we were sure these fish had been caught or handled but the data were lost. All model comparisons used the same data, where possible. This meant, for example, that even if one method could use tags with no tag number noted and another method needed those individual identifiers, both excluded the unknown tagged fish.
+
+### Mark-Recapture Estimates
+
+Alternate mark-recapture models were compared, using different analysis methods, capture occasions (e.g. Witset sites only versus Toboggan and Nanika), and assumptions. All estimates are of the size of the initial population as it reaches the Campground, which is the first occasion of the mark-recapture program. Population estimates were generated separately for Coho and Sockeye first using the “within canyon” data (Campground to Canyon sites only) in a pooled Lincoln-Petersen estimate with Chapman estimator (Chapman 1954); a Petersen model with weekly time-stratification in-Canyon (SPAS; Schwarz 2019); a Schnabel model using a the third capture location for Coho and Sockeye (Toboggan and Nanika, respectively); and finally, we compared these to the status quo estimate, which uses the pooled applied Witset tags and a second occasion of the Toboggan Fence for Coho, or the Nanika Snorkel for Sockeye. Diagrams of each mark-recapture analysis model are *Appendix X*. No tag loss rates, harvest reductions or any other adjustments that would normally be incorporated into the population estimates were applied when comparing estimates. Capture histories and model construction differed by model and species are detailed in the following sections. 
+
+Capture histories relied on both the presence of a tag number and a field called *TagStatus* where:
+
+*A* = newly tagged 
+
+*A2* = tagged with two anchor tags (a small number of fish)
+
+*AR* = fish was recaptured but either the tag was missing (but recognized as a recap by the caudal punch) or was replaced (a small number of fish)
+
+*R* = recapture, tag was recorded and normally the fish was released
+
+*NA* = fish was released without a tag or harvested
+
+#### In-Canyon Pooled Petersen - Capture Histories
+
+Capture histories were constructed for fish that were marked at the *Campground* (occasion 1) and fish that are newly captured or recaptured at the *Canyon* (occasion 2). For Coho (CO) and Sockeye (SK) the following capture histories were created:
+
+-	If a tag number was present, and if the TagStatus was *A*, *A2* or *AR*, and the location of the fish handled was (Campground), then this was treated as a capture at occasion 1 (first digit of history set to 1)
+
+-	If a tag number was present and if the TagStatus was either *A*, *A2*, *AR* or *R*, and the location of the of the fish handling was *Canyon*, then this was treated as a capture at occasion 2 (second digit of history set to 1). (Note that serial re-captures of the same fish would only count as one recapture).
+
+-	If no tag number was present and if the TagStatus was *NA*, *A*, *A2* or *AR*, and the location of the fish was the *Canyon*, this was considered a capture at occasion 2 of a fish (second digit of history set to 1).
+
+These capture histories excluded fish that were harvested or released without tags on the Campground; harvest of fish in the Canyon was treated as a unmarked fish seen in the Canyon.
+
+#### In-Canyon Pooled Petersen - Model
+
+The simplest capture-recapture estimator is the Pooled-Petersen estimator, where all capture/recaptures at a location are pooled over the entire study. The Chapman modification to the estimator is:
+
+$$\widehat{N}_{Chapman} = \frac{(n_1+1)(n_2+1)}{m_2+1}-1$$
+
+where 
+
+- $n_1$ (number of fish released on the *Campground*), 
+- $n_2$ (number of fish examined in the *Canyon*), and
+- $m_2$ (number of recaptures).
+
+These can be obtained from the counts of the capture histories as
+
+- $n_1 = n_{10}+n_{11}$
+- $n_2 = n_{01}+n_{11}$
+- $m_2 = n_{11}$
+
+The estimator for the standard error is given in many text books and not presented here. The relative standard error (RSE) is computed as:
+$$RSE=\frac{standard~error}{estimate}$$
+Both Coho and Sockeye used the same model construction.
+
+#### Time Stratified Estimates 
+
+Some of the key assumptions to ensure the unbiasedness of a pooled Lincoln-Petersen estimator are:
+
+- capture probability should be equal for all fish either at the time of marking or at the time of recovery, or 
+
+- complete mixing occurs.
+
+Complete mixing was unlikely to occur here because fish tagged earlier in the season tend to be recaptured later in the season. In particular, fish cannot be recaptured earlier than when released. 
+
+There are two common methods to assess the assumptions on the equality of capture probabilities either at the first or second capture locations: equal marked fractions and equal recovery fractions, and both were investigated here using data visualization, Chi-squared tests and Fisher Exact Tests. If the tests for equal marked fraction or equal recovery proportion both fail, then a stratified estimator may be appropriate.
+
+A Stratified-Petersen estimator (SPAS; Schwarz 2019) stratifies the time a fish was handled at both locations. Stratified models can use individually numbered tags so that the time of release and recapture can be used. We stratified by week for this program given the Monday-Friday nature of the protocol. We created stratified release/recovery matrices using weeks of release in the *Campground* and week of capture in the *Canyon* for each species-year combination. Fish that appeared to be released after being recaptured were discarded. 
+
+We created stratified release/recovery matrices using week of release in the Campground and week of capture in the Canyon for each species-year combination. In many cases, the stratified set of releases and recaptures was too sparse (many zeroes) or the counts was very small. Data needed to be pooled both row wise and column wise to avoid singularities in the fit. We used an automated system to pool rows or columns following Schwarz and Taylor (1998):
+
+- All rows that had 0 releases were discarded
+
+- All columns that had 0 recaptures of tagged fish and 0 fish inspected were discarded
+
+- Starting at the first row and working forwards in time, and then working from the final row and working backwards in time, rows were pooled until a minimum of 100 (Coho), 300 (Sockeye) or 50 (steelhead) were released. An alternating pooling (from the top, from the bottom, from the top, etc) was used.
+
+- Starting at the first column and working forwards in time, and then working from the final column and working backwards in time, columns were pooled until a minimum of 100 (Coho) 300 (Sockeye), or 50 (steelhead) were inspected. An alternating pooling (from the left, from the right, from the left, etc) was used. 
+
+- If the sum of the total recaptures from released fish is <= 50, then all rows were pooled (which reduces to a Chapman estimator)
+
+Using these pooled stratifications, the SPAS program (Schwarz 2019) was used to fit a Stratified-Petersen with the automated pooling. Both Coho and Sockeye used the same model construction.
+
+#### Mark-Resight Model Using Three Occasions
+
+So far the above models have only used the in-canyon data from Campround to Canyon, but models can be constructed to incorporate a third capture occasion: Toboggan Creek fish fence recoveries for Coho and the Nanika River snorkel re-sight rate for Sockeye. Individual fish information was known for Coho, whereas at Nanika only the total number of untagged and tagged fish was known. 
+
+##### Coho Capture Histories
+
+We constructed the three digit capture history representing tagging/recapture on the *Campground*, the *Canyon* and *Toboggan Creek* using only the tag number within each species-year combination. Many fish captured for the first time in the *Canyon* were released unmarked. So we were unable to determine if unmarked fish were recaptured multiple times at the *Campground*, *Canyon* and then at *Toboggan Creek*.
+
+We modified the capture history creation as for mark-resight studies. It is important to note that we only tracked marked fish in the capture histories, and kept a separate tally at occasion 2 and 3 of the number of unmarked fish captured. So a history of *010* or *011* would refer only to a fish tagged at the *Canyon* and would exclude fish that were captured at the *Canyon* and released untagged.
+
+This means that only histories 100, 110, 101, 111, 010, and 011 were generated, along with counts of unmarked fish captured at occasion 2 (*Canyon*) and occasion 3 (*Toboggan Creek*). Records were appended to the previous individual capture histories to include Toboggan Creek by appending a Location_Code of *T.Creek*, and *TagStatus* of *R* for recaptures. We applied similar rules as for the in-canyon Lincoln-Petersen to create the capture histories, but excluded untagged fish caught at the Canyon:
+
+- If a tag number was present, and if the *TagStatus* was *A*, *A2* or *AR*, and the location was *Campground*, then this was treated as a capture, tagged, and released at occasion 1 (first digit of history set to 1).
+
+- If a tag number was present and if the *TagStatus* was *A*, *A2*, *R* or *AR*,  the location was *Canyon*, and *Harvested* is *FALSE*, then this was treated as a capture, tagged, and released at occasion 2 (second digit of history set to 1).
+
+- If a tag number was present and if the *TagStatus* was *R*, and if the location was *T.Creek*, then this was treated as a capture at occasion 3 (third digit of history set to 1).
+
+We also tallied the number of unmarked Coho captured at the *Canyon* and *T.Creek*. The count for old history *01* included both unmarked fish caught in the *Canyon* and new tags applied in the *Canyon* that could be recaptured at Toboggan Creek. Only the latter should appear in the new histories *010* and *011* and the remainder were counted in the unmarked fish at each occasion. So the count for old history *01* should match the sum of the count for new history *010*, *011* and the number of unmarked at occasion 2. Fish with a history of *000* and *001* should never occur and these fish were ignored.
+
+##### Sockeye Tallies
+
+*N.Creek* was the third location after the *Campground* and *Canyon* for Sockeye. The data for the Nanika River snorkel surveys consisted of the total number of fish seen and the total number of tagged fish seen and information about the individual identity of tagged fish was unavailable. Because only the total numbers of fish seen and fish tagged were recorded, only summary data was tallied ($n_i$, $M_i$ and $m_i$) similarly to the Coho.
+
+We started with the same summary statistics as in the pooled Lincoln-Petersen with Witset only data. This gives us $n_1$, $n_2$, and $m_2$. Then:
+
+- $M_1$ was 0 and $M_2$ was the number of tags applied at the *Campground*. $M_3$ was the number of tags applied at the *Campground* or *Canyon*.
+
+- $m_1=0$ and $m_3$ was the number of tagged fish seen during the snorkel survey at *N.Creek*
+
+- $n_3$ was the total number of fish counted during the snorkel survey at *N.Creek*.
+
+##### Fitting the Mark-Resight Model - Schnabel
+
+The capture history construction allowed us to fit an abundance model that accounted for the multiple capture occasions, the additional marked fish at the *Canyon*, the recapture of marked fish from the *Campground* and the *Canyon* at *Toboggan Creek* and the capture of unmarked fish at the *Canyon* and *Toboggan Creek* that were not marked. The same is true for Sockeye using the *Nanika* occasion. A simple model to estimate the population using all three occasions is the Schnabel (1938), where the estimator takes the form:
+
+$$\widehat{N}_{Schnabel}=\frac{\sum_{i=1}^k n_i \times M_i}{\sum_{i=1}^k m_i}$$
+
+where:
+
+- $n_i$ is the number of fish examined at occasion $i$;
+
+- $M_i$ is the number of marked fish available in the population just before occasion $i$;
+
+- $m_i$ is the number of marked fish observed at occasion $i$.
+
+Notice that at $i=1$, both $M_i$ and $m_i$ are zero. If $k=2$ this reduces to the familiar Lincoln-Petersen estimator. This estimator is a weighted average of the individual Lincoln-Petersen estimator using pairs of occasions (1,2) and (2,3). 
+
+#### The Status quo Estimate: Pooled Witset Tags and Recapture at Toboggan or Nanika
+
+The current method for estimating the Bulkley-Morice populations for Coho and Sockeye pools all tags applied at the *Campground* and *Canyon* and counts them as one tagging occasion, while sampling at *Toboggan Creek* or *Nanika River* count as the second capture occasion in a simple Lincoln-Petersen estimate with Chapman modification. To calculate this, we simplified the capture histories down to all tags applied at Witset and recaptured/untagged fish sampled at Toboggan or Nanika for Coho and Sockeye, respectively. In essence, we used $M_3$ as the total marks from Witset, $n_3$ as the total Coho/Sockeye encountered at Toboggan or Nanika, and $m_3$ as the recaptured or resighted tags at Toboggan or Nanika.
+
+#### Test Assumptions of Mark-Recapture Models
+
+To help understand discrepancies and appropriateness of using the different mark-recapture estimates, we assessed the validity of assumptions for the Lincoln-Petersen model from Schwarz and Taylor (1998):
+
+-	Either or both samples were a simple random sample (or at least mixed uniformly)
+
+-	The population was closed
+
+-	There was no tag loss, or tag loss was accounted for
+
+-	Tagging status was determined without error 
+
+-	Tagging had no effect on the behaviour of the fish
+
+There were not always data available to conclusively test all of these assumptions, but we used what was available to infer the validity of the assumption. 
+
+### Data Analysis Software
+
+R version 4.3.2 (R Core Team 2023), RStudio version 2023.09.1 (Posit team 2023), and RMarkdown (Xie et al. 2018) were used to analyse and compile this report. Packages tidyverse (Wickham et al. 2019), readxl (Wickham and Bryan 2022), lubridate (Grolemund and Wickham 2011), knitr (Xie 2022), and gridExtra (Auguie 2017) were used to organize and visualize data. For mark-recapture analyses, packages FSA (Ogle et al. 2022) and SPAS (Schwarz 2019) were used.
+
+# Results
+
+The Campground and Canyon sites started and ended at similar times each year, with the exception of 2021 when the Campground site had to shut down approximately 27 days before the Canyon due to lack of staff, and 22 days earlier in 2023 **Table 1**. Daily catch with river discharge are visualized in **Figure 1**.
+
+```{r Table 1 startend witset, echo=F, warning=F}
+library(dplyr)
+knitr::kable(table.summary.re, 
+             col.names = c("Year","Capture Location","First Day","Last Day","Total Days Fished","Sockeye","Coho","Chinook","Steelhead"), 
+             caption = "Table 1: Start and end timing by location from 2018 to 2023 for Witset mark and recapture sites. The total number of days that the sites were fishing and the total catch by species are noted.") %>%  
+  kableExtra::add_header_above(c(" " = 5, "Total Caught"=4)) %>% 
+  kableExtra::kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+
+```{r Figure 1 timing of catch with flow, echo=F, warning = F, fig.cap = "Figure 1: Daily number of fish captured at Witset campground and canyon throughout the season from 2018 to 2023. The gray line represents the relative daily flow through the season as measured at Environment Canada station 08EE005 and the darker gray represents flows above 300 cms, or appr. 3.9 m, above which the project cannot operate. CO=Coho, SK=Sockeye, CH=Chinook, ST=Steelhead",fig.width = 7, fig.height = 6}
+plot.timing.flow
+```
+
+## Missing Data
+
+In some years coloured tags were seen on Coho at the Toboggan Creek fence but the fish were fumbled and released before the tag number could be read (2022 n=11, 2021 n=1, 2019 n=1). Plausible tag numbers for these fish were assigned from uncaptured tagged Coho from Witset. These fish were not included in any meristic data or travel time summaries.
+
+In 2023, there were also three days of missing data sheets from the Canyon, which were evidenced by whole series of recaptured tags that were never recorded as applied on days when crews were known to be working. For those days, tagged fish were generated conservatively to add the minimum tag series that were known to be missed (n=78 CO, 33 SK), the average number of untagged releases (n=2 CO) as well as a random sample of plausible recaptures similar to the number of recaps in nearby days (n=20 CO). 
+
+## Mark-Recapture Estimates
+
+### In-Canyon Pooled Petersen
+
+The summary statistics for the In-Canyon Pooled-Petersen are presented in **Table 3** and **Table 4**.
+
+```{r Table 3, echo=FALSE, message=FALSE, warning=FALSE}
+knitr::kable(cap.hist.wide, caption = "Table 3: Summary of fish capture histories: `00` is an error where fish were recaptured with no applied record, `10` are fish tagged at the Campground, `11` are fish tagged at Campground and Recaptured at the Canyon, `01` are fish newly captured at the Canyon. n1 is the sum of fish with histories `10` and `11`, n2 is the sum of fish with histories `01` and `11`, and m2 are fish with capture histories `11`.") %>% 
+  kableExtra::kable_styling("bordered", position = "center", full_width=FALSE, latex_options = "HOLD_position")
+  
+```
+
+```{r Table 4, echo=F, warning=F, message=F}
+knitr::kable(all.summary %>% 
+        filter(Species %in% c("CO","SK")), row.names=FALSE,
+      caption="Table 4: Witset In-Canyon Pooled-Petersen (Chapman modification) estimates",
+      col.names=c("Species","Year",
+                  "n1","n2","m2",
+                   "Estimate","SE","RSE"),
+      digits=c(0,0, 0,0,0, 0,0,2)) %>% 
+      kableExtra::kable_styling("bordered", position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+When the number of recaptures ($m_2$) was small the Relative Standard Error (RSE) was very large. Typically a Petersen estimator with fewer than 10 recaptures would have such poor precision as to be not useful. The estimates of abundance plotted over time are in **Figure 9**:
+
+```{r Figure 9, echo=FALSE, message=FALSE, warning=FALSE, fig.width = 6,fig.height=5, fig.cap = "Figure 9: Trend in Lincoln-Peterson Estimates for Coho (CO) and Sockeye (SK) using Witset Campground to Canyon data only."}
+
+ggplot(data=all.summary[all.summary$Species %in% c("CO","SK"),], aes(x=year, y=N.est))+
+  #ggtitle("Estimated abundances over time - Pooled-Petersen at Witset")+
+  geom_point()+
+  geom_line()+
+  geom_errorbar(aes(ymin=N.est-2*N.se, ymax=N.est+2*N.se), width=.1)+
+  facet_wrap(~Species, ncol=2, scales="free_y")+
+  ylab("Estimated abundance (95% CI)")
+
+```
+
+## Time Stratified Estimates
+
+#### Stratified release and capture matrices
+
+We created stratified release/recovery matrices using week of release in the *Campground* and week of capture in the *Canyon* for each species-year combination.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Make the release/recovery SPAS matrix
+spas.mat <- plyr::dlply(cap.hist[cap.hist$Species %in% c("CO","SK"),], c("Species","year"), function(x){
+    # remove any below diagonal elements
+    #browser()
+    select <- x$w1 > x$w2 & !is.na(x$w1) & !is.na(x$w2) # any releases before recover
+    x <- x[ !select,]
+    if(sum(select)>0)cat("Species ", x$Species[1], "year ", x$year[1], " removed ", sum(select), " fish with bad dates\n")
+    # remove any recoveries before the first release
+    select <- (x$w2 < min(x$w1, na.rm=TRUE))  & !is.na(x$w2)
+    if(sum(select)>0)cat("Species ", x$Species[1], "year ", x$year[1], " removed ", sum(select), " fish with w2 < min(w1) \n")
+    x <- x[!select,]
+    x$freq <- 1
+    # create dummy records with a freq of 0.1 to ensure that all combinations of w1 and w2 occur.
+    #browser()
+    dummy <- expand.grid(w1=c(NA, min(x$w1, na.rm=TRUE):max(x$w1, na.rm=TRUE)),
+                         w2=c(NA, min(x$w1, na.rm=TRUE):max(x$w2, na.rm=TRUE)),
+                         freq=.1)
+    
+    
+    spas.mat <- as.matrix(xtabs(freq~w1+w2, data=plyr::rbind.fill(x,dummy), exclude=NULL, na.action=na.pass))
+    spas.mat <- round(spas.mat)
+    #browser()
+    list(Species=x$Species[1],
+         year   =x$year[1],
+         spas.mat=spas.mat)
+})
+
+```
+
+An example of the input matrices for SPAS is shown below for Coho Salmon from `r spas.mat[[1]]$year` in **Table 9**.
+
+```{r Table 9, echo=FALSE, message=FALSE, warning=FALSE}
+kable(spas.mat[[1]]$spas.mat, caption="Table 9: Example weekly stratified matrix") %>% 
+  kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+No tagged fish were released until week `r rownames(spas.mat[[1]]$spas.mat)[1]` when `r sum(spas.mat[[1]]$spas.mat[1,], na.rm=TRUE)` fish were released. Recaptures occurs in the same and subsequent week, but `r spas.mat[[1]]$spas.mat[1,ncol(spas.mat[[1]]$spas.mat)]` fish were never recaptured. Inspections were sparse until week `r colnames(spas.mat[[1]]$spas.mat)[2]`. The number of recaptures in each combination of release and inspection strata were often small.
+
+Complete input matrices for all species-years is shown in **Appendix D**.
+
+#### Automated pooling rules for SPAS
+
+In many cases, the stratified set of releases and recapture was too sparse (many zeroes) or counts were very small. Pooling rows and columns was needed (see pooling rules in Methods). 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=F}
+# process the SPAS matrices
+co.min.count.rec <- 100
+so.min.count.rec <- 300
+#st.min.count.rec <-  50
+co.min.count.rel <- 100
+so.min.count.rel <- 300
+#st.min.count.rel <-  50
+
+spas.mat <- plyr::llply(spas.mat, function (x){
+   cat("Processing Species", x$Species, "and ", x$year, "\n")
+   # SPAS matrix has
+   # upper s x t = recoveries
+   # right s+1 column = number not recovered
+   # bottom t+1 row = number not tagged in recovered
+   spas.mat <- x$spas.mat
+   
+   s <- nrow(spas.mat) - 1
+   t <- ncol(spas.mat) - 1
+
+      #browser()
+   # get rid of rows that have 0 releases
+   select <- apply(spas.mat,1,sum, na.rm=TRUE)>0
+   spas.red  <- spas.mat[select,]
+   # get rid of columns that are all 0
+   select <- apply(spas.red,2,sum, na.rm=TRUE)>0
+   spas.red  <- spas.red[,select]
+   
+   # recompute s and t
+   s.red <- nrow(spas.red)-1
+   t.red <- ncol(spas.red)-1
+   
+   #browser()
+   # pool columns until you get at least xxxx recoveries in a stratum
+   # we will will work from the outside in
+   col.pool <- 1:t.red
+   col.sum  <- colSums(spas.red)
+   left.last.col <- 1
+   left.cum.sum  <- 0
+   right.last.col <- t.red
+   right.cum.sum  <- 0
+   left <- 1
+   right <- t.red
+   if(x$Species == "CO")min.count <- co.min.count.rec
+   if(x$Species == "SK")min.count <- so.min.count.rec
+   #if(x$Species == "ST")min.count <- st.min.count.rec
+   while(left < right){
+      #if(year==7)browser()
+      col.pool[left] <- left.last.col
+      left.cum.sum <- left.cum.sum + col.sum[left]
+      if(left.cum.sum > min.count){
+         left.last.col <- left+1
+         left.cum.sum  <- 0
+      }
+      left <- left + 1
+      
+      col.pool[right] <- right.last.col
+      right.cum.sum <- right.cum.sum + col.sum[right]
+      if(right.cum.sum > min.count){
+         right.last.col <- right-1
+         right.cum.sum  <- 0
+      }
+      right <- right - 1
+   }
+  
+   # pool rows until you get at least xxx releases  in a stratum
+   # we will will work from the outside in
+   
+   row.pool <- 1:s.red
+   row.sum  <- rowSums(spas.red)
+   top.last.row <- 1
+   top.cum.sum  <- 0
+   bot.last.row <- s.red
+   bot.cum.sum  <- 0
+   top <- 1
+   bot <- s.red
+   if(x$Species == "CO")min.count <- co.min.count.rel
+   if(x$Species == "SK")min.count <- so.min.count.rel
+   #if(x$Species == "ST")min.count <- st.min.count.rel
+   #if(x$Species == "ST" & x$year==2017)browser()
+   while(top < bot){
+      row.pool[top] <- top.last.row
+      top.cum.sum <- top.cum.sum + row.sum[top]
+      if(top.cum.sum > min.count){
+         top.last.row <- top+1
+         top.cum.sum  <- 0
+      }
+      top <- top + 1
+      
+      row.pool[bot] <- bot.last.row
+      bot.cum.sum <- bot.cum.sum + row.sum[bot]
+      if(bot.cum.sum > min.count){
+         bot.last.row <- bot-1
+         bot.cum.sum  <- 0
+      }
+      bot <- bot - 1
+   }
+ 
+   # check the total recaptures
+   if( sum(spas.mat[1:s, 1:t])<= 50){
+      row.pool[] <- 1
+   }
+   # special instructions for particular years where the automatic pooling did not work
+   # if(x$Species=="CO" & x$year==2012){
+   #     row.pool[7] <- 10  
+   # }
+   # if(x$Species=="CO" & x$year==2013){
+   #     row.pool[9] <- 11  
+   # }
+   # if(x$Species=="CO" & x$year==2014){
+   #     row.pool[4] <- 1  
+   # } 
+   # if(x$Species=="SK" & x$year==2013){
+   #     row.pool[5:9] <- 3
+   # }
+
+   list(Species   = x$Species,
+        year      = x$year,
+        spas.mat  = x$spas.mat,
+        spas.red  = spas.red,
+        row.pool  = row.pool,
+        col.pool  = col.pool,
+        n.recaps  = sum(spas.mat[1:s, 1:t]))
+})
+```
+
+These rules gave the augmented matrix in **Table 10**.
+
+```{r Table 10, echo=FALSE, message=FALSE, warning=FALSE}
+
+temp <- spas.mat[[1]]
+kable(cbind(rbind(temp$spas.red, c(temp$col.pool, NA)), c(temp$row.pool,NA,NA)), caption="Table 10: Example augmented matrix with pooling results below and beside weekly stratification.") %>% 
+  kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+   
+```
+
+The main $s \times t$ matrix was the number of fish released in each week and recaptured in each week as seen before. The second-to-final column was the number of fish tagged and released, but never recaptured. The final column was the pooling rules for rows from the automated system. For example, weeks that have the same value were pooled, i.e., if the pooling vector was c(1,1,3,4,5,6,10,10,10,10), then weeks 1 and 2 were pooled and weeks 7 to 10 were pooled.
+
+The second-to-final row was the number of unmarked fish captured in the *Canyon* during that week. The final row was the pooling rules for the columns following the same convention as the pooling rules for rows. Note that if the pooling vector was c(1,1,1,...,1) then all rows/or all columns were pooled. The complete list of automated pooling rules is found in **Appendix C**. A summary of the number of rows and columns after pooling and the total number of recaptures are in **Table 11**.
+
+```{r Table 11, echo=FALSE, message=FALSE, warning=FALSE}
+
+# check the number of rows and columns after pooling
+temp <- plyr::ldply(spas.mat, function (x){
+   s <- length(unique(x$row.pool))
+   t <- length(unique(x$col.pool))
+   recaps <- sum(x$spas.mat[1:(nrow(x$spas.mat)-1), 1:(ncol(x$spas.mat)-1)])
+   data.frame(Species=x$Species, 
+              year   =x$year, 
+              s=s, t=t, nrecap=recaps,
+              problem=ifelse(s<=t, " ", "*****"))
+})
+
+#temp[temp$problem != " ",]
+
+temp.wide <- tidyr::pivot_wider(temp,
+                          id_cols="year",
+                          names_from="Species",
+                          values_from=c("s","t",nrecap))
+
+kable(temp.wide[,c("year",
+                 # "s_CH","t_CH","nrecap_CH",
+                   "s_CO","t_CO","nrecap_CO",
+                   "s_SK","t_SK","nrecap_SK")], row.names=FALSE,
+      caption="Table 11: Summary of final poolings for SPAS", 
+      col.names=c("Year",
+                 #"# rows","# cols","# recaps", 
+                  "# rows","# cols","# recaps",  
+                  "# rows","# cols","# recaps"),
+      digits=c(0,  
+#                  0,0,0 
+                   0,0,0, 
+                   0,0,0))  %>% 
+      add_header_above(c(" " = 1, 
+#                        "Chinook "=3,
+                         "Coho"=3,
+                         "Sockeye"=3)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+Notice that in the case of a small number of recaptures there was complete pooling (e.g., $s=1$ is required) such as in most years for Coho Salmon.
+
+### Fitting the SPAS models
+
+The SPAS program (Schwarz 2019) was used to fit Stratified-Petersens with the automated pooling results.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+
+# fit the spas models
+spas.mat <- plyr::llply(spas.mat, function (x){
+   cat("\n\n***** Starting SPAS fit for ", x$Species, "  ", x$year, "\n")
+   #browser()
+   spas.fit <- SPAS.fit.model(paste(x$Species, "-", x$year),
+                                    x$spas.red,
+                                    row.pool.in=x$row.pool,
+                                    col.pool.in=x$col.pool,optMethod.control = list(maxit = 100000)
+   )
+   x$spas.fit <- spas.fit
+   x
+})
+```
+
+A complete list of the fitting results is found in **Appendix E**.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,include=FALSE}
+# print the spas model results
+plyr::l_ply(spas.mat, function (x){
+   cat("\n\n***** Starting SPAS fit for ", x$Species, ' ' , x$year, "\n")
+   #browser()
+   SPAS.print.model(x$spas.fit)
+   #input <- readline(prompt="OK?")
+})
+
+```
+
+**Table 12** is a comparison of the Chapman and SPAS estimates of abundance for Coho and Sockeye.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# extract chapman and SPAS estimate of population size
+pp.spas <- plyr::ldply(spas.mat, function (x){
+   chapman    <- x$spas.fit$est$N.Chapman
+   chapman.se <- x$spas.fit$se $N.Chapman
+   spas    <- x$spas.fit$est$real$N
+   spas.se <- x$spas.fit$se$real$N
+   spas.final.s <- length(unique(x$spas.fit$input$row.pool.in))
+   spas.final.t <- length(unique(x$spas.fit$input$col.pool.in))
+   if(spas.se > 1000000){
+     spas    <- NA
+     spas.se <- NA
+     spas.final.s <- NA
+     spas.final.t <- NA
+   }
+   if(x$n.recaps <15){  # just too few to do any stratified estimator
+     spas    <- NA
+     spas.se <- NA
+     spas.final.s <- NA
+     spas.final.t <- NA
+   }
+   data.frame(Species=x$Species, 
+              year=x$year, 
+              chapman    = chapman, 
+              chapman.se = chapman.se,
+              spas=spas, 
+              spas.se=spas.se,
+              spas.final.s = spas.final.s,
+              spas.final.t = spas.final.t)
+})
+```
+
+
+```{r Table 12, echo=FALSE, message=FALSE, warning=FALSE}
+temp <- pp.spas[,-1]
+
+kable(temp, row.names=FALSE,
+      caption="Table 12: Comparison of SPAS and Pooled-Petersen estimators",
+      col.names=c("Species","Year",
+                  "Estimate","SE",
+                  "Estimate","SE","s","t"), 
+      digits=c(0,0, 0,0,  0,0,0,0))  %>% 
+      add_header_above(c(" " = 2, 
+                         "Pooled Petersen"=2,
+                         "Stratified Petersen"=4)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+Notice that when $s=1$ (complete pooling of rows) the estimates were very close, with the difference due the Chapman correction applied to the pooled Lincoln-Petersen estimator, which cannot be applied to the SPAS estimator. If the number of recaptures was too small (e.g. Sockeye in 2022), the SPAS estimator was not computed.
+
+A plot of the two estimate methods is in **Figure 12** and the comparison of the errors in **Figure 13**.
+
+```{r Figure 12, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=6, fig.cap="Figure 12: SPAS vs Chapman estimates of abundance for Witset In-Canyon estimates."}
+# find the ratio of the estimators for each species
+ratio <- plyr::ddply(pp.spas, c("Species"), plyr::summarize,
+                     ratio    = exp( mean(log(spas),   na.rm=TRUE) -mean(log(chapman),    na.rm=TRUE)),
+                     ratio.se = exp( mean(log(spas.se), na.rm=TRUE)-mean(log(chapman.se), na.rm=TRUE))
+         )
+
+ggplot(data=pp.spas, aes(x=chapman, y=spas))+
+   #ggtitle("SPAS vs Chapman estimates of abundance")+
+   geom_point()+
+   geom_errorbar (aes(ymin=pmax(0,spas-2*spas.se), ymax=spas+2*spas.se))+
+   geom_errorbarh(aes(xmin=pmax(0,chapman-2*chapman.se), xmax=chapman+2*chapman.se))+
+   geom_abline(intercept=0, slope=1)+
+   geom_text(aes(label=year))+
+   geom_text(data=ratio, aes(label=paste("GMean S:C ", round(ratio,2))), x=-Inf, y=Inf, hjust=0, vjust=1.5)+
+   xlab("Chapman estimate (95% ci)")+
+   ylab("SPAS estimate (95% ci)")+
+   facet_wrap(~Species, ncol=2, scales="free")
+
+```
+
+The estimates from the stratified analysis were very similar to those from the pooled-Petersen but the uncertainty around the SPAS estimates was larger than the uncertainty around the Pooled-Petersen estimates.
+
+```{r Figure 13, echo=FALSE, message=FALSE, warning=FALSE,fig.width=6, fig.height=6}
+ggplot(data=pp.spas, aes(x=chapman.se, y=spas.se))+
+   ggtitle("SPAS vs Chapman standard errors of abundance")+
+   geom_point()+
+   geom_abline(intercept=0, slope=1)+
+   geom_text(aes(label=year), size=3)+
+   geom_text(data=ratio, aes(label=paste("GMean SE S:C ", round(ratio.se,2))), x=-Inf, y=Inf, hjust=0, vjust=1.5, size=3)+
+   facet_wrap(~Species, ncol=2, scales="free")
+
+```
+
+## Mark-Resight Models Using Three Occasions
+
+For Coho, unmarked and marked Coho at Toboggan Creek fish fence were added as a third occasion for the mark-resight model. Tag loss (i.e. cases where the anchor tag was lost between Witset and Toboggan) were more consistently examined in 2023 at this fence and a summary of catches, Witset recaptures and minimum tag loss at Toboggan Creek are summarized in **Table 13**.
+
+```{r Table 13, tobog summary table, echo=F, warning=F}
+knitr::kable(table.tobog,
+             col.names = c("Year","Total CO","Witset Recaps",
+                            "Minimum Tag Loss",
+                           "Hatchery Origin","Wild Origin"),
+             caption = "Table 13: Summary of Coho caught at the Toboggan Creek Fence by year. Total CO is the total number of coho intercepted at the fence, Witset Recaps is the number of fish recognized as Witset tagged (including those with only a caudal punch), Witset Unknown Tags is the number of fish fumbled or observed passing the fence but no tag number was recorded, Lost tags was the number of fish with caudal punches but no anchor tag, and Hatchery and Wild origin were those fish with and without a clipped adipose, respectively.") %>% 
+  kable_styling("bordered", position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+Capture histories for Coho using in-canyon only captures and recaptures are in **Table 14** versus the capture histories when *T.Creek* is included are in **Table 15**.
+
+```{r Table 14, echo=FALSE, message=FALSE, warning=FALSE}
+kable(xtabs(freq~ year+hist, data=cap.hist[cap.hist$Species=="CO" &
+                                    cap.hist$year %in% yr.select,]), caption="Table 14: Tag histories from just Witset capture occasions") %>%  kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+```{r Table 15, echo=FALSE, message=FALSE, warning=FALSE}
+kable(tmp <- xtabs(freq ~year+hist, data=t.cap.hist, exclude=NULL, na.action=na.pass), caption="Table 15: Capture histories including Witset capture occasions and Toboggan Creek capture occasion") %>% 
+  kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+Notice that the counts for the **Table 14** history in  *10* are split into the histories *100* and *101* in **Table 15**; the counts for the history *11* are split into the histories *111* and *110*; and the counts for the history *00* are split into the histories *000* and *001*.
+
+The old history *01* must be treated with care because of the treatment of unmarked fish that are captured at the *Canyon* and either harvested (lost on capture) or released unmarked. The number of unmarked fish captured at the *Canyon* and *T.Creek* were tallied and are presented in **Table 16**.
+
+```{r Table 16, echo=FALSE, message=FALSE, warning=FALSE}
+kable(t.unmarked, caption="Table 16: The number of unmarked fish captured at the three capture occassions: Campground, Canyon and Toboggan. The Campground untagged catch is considered 0 in these analyses.", col.names = c("Species","Year","Campground unmarked","Canyon unmarked","Toboggan unmarked")) %>%  
+  kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+```
+
+### Fitting the Mark-Resight model- Coho
+
+```{r tag loss, eval=FALSE, echo=F, warning=F,message=F}
+
+# #pick sample from available tags for fumble fish and assign in spreadsheet
+# avail.tags.lost <- t.cap.hist %>% 
+#   filter(hist %in% c("000","010","100","110"), year %in% 2022) 
+# avail.tags.lost[sample(nrow(avail.tags.lost),3),]
+
+#assess current known tag loss
+kable(tag.loss.sum <- tobog %>% 
+  filter(year %in% yr.select) %>% 
+  group_by(year) %>% 
+  summarize(n.min.tagloss = length(which(!is.na(witset.tagloss))),
+            n = length(order),
+            perc.min.tagloss = n.min.tagloss/n,
+            n.nontobog = length(which(is.na(recap_tag_number))),
+            assumed.tags.lost = round(n.nontobog*0.05,0)),
+  caption = "Table tag.loss: Tag loss summary")
+# since tag loss is likely currently underestimated, use blanket 5% (5% of all tags applied)
+
+# change random 5% of total to be Tobog recaps
+unique(t.cap.hist$hist)
+non.tobog.tagged <- t.cap.hist %>% 
+  filter(hist %in% c("010","100","110")) 
+
+x <- vector(length = length(yr.select), mode = "list")
+
+#KP loves for loops!
+for (i in 1:length(yr.select)){
+  x[[i]] <- t.cap.hist %>% 
+    filter(year %in% yr.select[i]) %>% 
+    sample_n(length(which(t.cap.hist$year %in% yr.select[i] & 
+                            !is.na(t.cap.hist$w3)))*0.05) %>% 
+    filter(hist %in% c("010","100","110")) %>% 
+    mutate(new.hist = ifelse(hist %in% "010", "011",
+                             ifelse(hist %in% "100", "101", 
+                                    ifelse(hist %in% "110", "111", hist))))
+}
+
+x <- plyr::ldply(x) %>% 
+  mutate(tag.loss = "estimated")
+
+t.cap.hist <- t.cap.hist %>% 
+  left_join(x) %>% 
+  mutate(hist = ifelse(!is.na(new.hist), new.hist, hist)) %>% 
+  select(-new.hist)
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include = F}
+
+# summarize the capture history data to get the summary statistics
+# which we will modify to account for the unmarked seen at each occasion
+
+t.fit <- plyr::llply(unique(t.cap.hist$year), function(year, t.cap.hist, t.unmarked){
+   # select this years data
+   cat("\n\nStarting Year ", year, "\n")
+   #if(year==2017)browser()
+   t.cap.hist = t.cap.hist[ t.cap.hist$year==year,]
+   t.unmarked = t.unmarked[ t.unmarked$year==year,]
+   
+   print(xtabs(freq ~year+hist, data=t.cap.hist, exclude=NULL, na.action=na.pass))
+   print(t.unmarked)
+
+   # get the summary statistics
+   t.cap.hist$h1 <- ifelse(substr(t.cap.hist$hist,1,1)=='1',1, 0) 
+   t.cap.hist$h2 <- ifelse(substr(t.cap.hist$hist,2,2)=='1',1, 0) 
+   t.cap.hist$h3 <- ifelse(substr(t.cap.hist$hist,3,3)=='1',1, 0) 
+   t.cap.summary <- FSA::capHistSum(t.cap.hist[,c("h1","h2","h3")])
+   print(t.cap.summary$sum)
+
+   # we now modify the summary statistics to account for the unmarked captured at location 2 and 3
+   t.cap.summary$sum$n[2] <- t.cap.summary$sum$n[2] + t.unmarked$t.unmarked.2
+   t.cap.summary$sum$n[3] <- t.cap.summary$sum$n[3] + t.unmarked$t.unmarked.3
+   print(t.cap.summary$sum[,c("n","m","M")])
+   
+   # get the population estimate
+   fit <- FSA::mrClosed(
+         M=t.cap.summary$sum$M,
+         n=t.cap.summary$sum$n,
+         m=t.cap.summary$sum$m,
+         #R=t.cap.summary$sum$R,
+         method="Schnabel")
+   fit.ci <- confint(fit)
+   #browser()
+   #plot(fit)
+   
+   list(year=year,
+        Species="CO",
+        fit=fit,
+        N    = fit$N,
+        N.lcl= fit.ci[1],
+        N.ucl= fit.ci[2],
+        N.se = (fit.ci[2]-fit.ci[1])/(2*1.96))
+  
+}, t.cap.hist = t.cap.hist,
+   t.unmarked = t.unmarked)
+
+```
+
+The estimated population abundances from the Schnabel method and the original pooled-Petersen method are in **Table 17**:
+
+```{r Table 17, echo=FALSE, message=FALSE, warning=FALSE}
+N.hat <- plyr::ldply(t.fit, function(x){
+  data.frame(Species=x$Species,
+             year=x$year,
+             N = x$N,
+             N.se=x$N.se,
+             N.lcl=x$N.lcl,
+             N.ucl=x$N.ucl)
+})
+
+temp <- merge(N.hat, plyr::rename(all.summary[,c("Species","year","N.est","N.se")],
+                                  c("N.est"="PP.N.est",
+                                    "N.se" ="PP.N.se")), by=c("Species","year"))
+
+kable(temp[,c("Species","year","N","N.se","PP.N.est","PP.N.se")], row.names=FALSE,
+      caption="Table 17: Estimated abundance from Schnabel method compared to In-Canyon Pooled-Petersen",
+      col.names=c("Species","year",
+                  "Estimate","SE",
+                  "Estimate","SE"),
+      #format="pipe",
+      digits=c(0,0, 0,0, 0,0 ))  %>% 
+      add_header_above(c(" " = 2, 
+                         "Schnabel method"=2,
+                         "Pooled Petersen"=2)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+coho.temp <- temp
+  
+```
+There are some rather huge deviations between these model results and the in-canyon pooled Lincoln-Petersen. As an example, consider the 2021 Coho Salmon data:
+
+At the *Campground*, 317 tags were applied ($n_1$). Since this is the first occasion, the number of marked fish in the population just before sampling occurred ($M_1$) and the number of marked fish in that sample are both zero.
+
+Then at the *Canyon*, there are now 317 marked fish in the population ($M_2=317$)
+and 23 recaptures were found in a total of 1054 examined fish. This gives a Petersen estimator of
+$$\widehat{N}_2 = \frac{1054 \times 317}{23}=14527$$ fish.
+
+An additional 757 tags were applied in the Canyon and 245 fish were harvested (and removed).
+
+Finally for the third occasion,there are now $317+757=1074$ marked fish in the population. A total of 2917 fish were examined, of which 61 are marked. This gives a Petersen estimator of
+
+$$\widehat{N}_3 = \frac{2917 \times 1074}{61}=51358$$ fish!
+
+Something has obviously gone wrong that the estimates for 2019 to 2021 are so much higher when the *T.Creek* data was used. For example, in 2021, the marked fraction at the *Canyon* is $23/1054=.0218$. But when the number of tags in the population is tripled from the new tagging at the *Canyon*, the marked fraction at *T.Creek* ($61/2917=.0209$) actually goes down.
+
+A similar problem is seen for the other years (**Table 18**):
+
+```{r Table 18, echo=FALSE, message=FALSE, warning=FALSE}
+# get the marked fractions at each sampling time
+mf <- plyr::ldply(t.fit, function(x){
+   #browser()
+   res <- data.frame(Species=x$Species, year=x$year,
+                     n=x$fit$n, M=x$fit$M, m=x$fit$m)
+   res$mf <- res$m/ res$n
+   res
+})
+
+kable(mf[,c("Species","year","n","M","m","mf")], row.names=FALSE,
+      caption="Table 18: Estimated marked fraction from Schnabel method",
+      col.names=c("Species","year",
+                  "n","M","m","Marked fraction"),
+      digits=c(0,0, 0,0,0, 3 ))  %>% 
+      add_header_above(c(" " = 2, 
+                         "Summary stats"=3,
+                         " "=1)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+  
+```
+
+In many years, the number of new tags added at the *Canyon* does not affect the marked fraction, which should not happen- adding marks to a closed population should increase the marked-fraction at every stage.
+
+We can do some comparisons to figure out what may have gone wrong. The proportion of Coho tagged at the *Campground* versus the *Canyon* and recaptured at *Toboggan Creek* should indicate if one location or the other had a systemic issue with fish tags not making it to Toboggan (**Figure 15**). There is nothing too alarming about the differences in tag recoveries from the Campground or Canyon to Toboggan.
+
+``` {r Figure 15, echo=F, message=F, warning=F, fig.cap = "Figure 15: Proportion of applied tags recaptured at Toboggan Creek weir by origin. The size of the point is proportional to how many tags were applied at each location."}
+plot.recap.origin.tobog
+
+```
+
+### Fitting the Mark-Resight model - Sockeye
+
+For Sockeye, unmarked and marked Sockeye resighted during the snorkel survey were added as a third occasion for the mark-resight model. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create the summary data including Nanika Creek
+
+# extract the summary statistics from the Pooled-Petersen Analysis
+n.summary <- cap.hist.wide[ cap.hist.wide$Species=="SK", c("Species","year","n1","n2","m2")]
+n.summary$m1 <- 0
+n.summary$M1 <- 0
+
+n.summary$M2 <- n.summary$n1
+
+# add in the statistics at N.Creek
+n.summary <- merge(n.summary, plyr::rename(n.counts,
+                                           c("nanika.counted"="n3",
+                                             "nanika.tags"="m3")))
+
+# add the number of marks applied at the Canyon to the population total of marks
+witset.red.n <- witset[ witset$Species == "SK" &
+                          witset$year    >= min(n.counts$year) &
+                          witset$year    <= max(n.counts$year),]
+canyon.marks <- plyr::ddply(witset.red.n, c("Species","year"), plyr::summarize,
+                         canyon.marks = sum(TagStatus %in% c("A","A2","AR") & Location_Code == "Canyon"))
+n.summary <- merge(n.summary, canyon.marks)
+n.summary$M3 <- n.summary$M2 + n.summary$canyon.marks
+
+```
+
+The summary statistics are in **Table 20**.
+
+```{r Table 20, echo=FALSE, message=FALSE, warning=FALSE}
+
+kable(n.summary[,c("Species","year",
+                   "n1","M1","m1",
+                   "n2","M2","m2", "canyon.marks",
+                   "n3","M3","m3")], row.names=FALSE,
+      caption="Table 20: Summary statistics including Nanika snorkel survey",
+      col.names=c("Species","year",
+                  "n1","M1","m1",
+                  "n2","M2","m2","Canyon tags applied",
+                  "n3","M3","m3"),
+      digits=c(0,0, 0,0,0, 0,0,0, 0, 0,0,0 ))  %>% 
+      add_header_above(c(" " = 2, 
+                         "Campground"=3,
+                         "Canyon"    =3,
+                         " "=1,
+                         "Nanika Creek"=3)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+
+```
+
+We again use the Schnabel (1938) model for *Nanika* as was done for the *Toboggan Creek* data.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+n.fit <- plyr::alply(n.summary,1, function(x){
+   cat("\n\nStarting year ", x$year, "\n")
+
+   # get the population estimate
+   fit <- FSA::mrClosed(
+         M=c(x$M1, x$M2, x$M3),
+         n=c(x$n1, x$n2, x$n3),
+         m=c(x$m1, x$m2, x$m3),
+         method="Schnabel")
+   fit.ci <- confint(fit)
+   #browser()
+   #plot(fit)
+   
+   list(year=x$year[1],
+        Species=x$Species[1],
+        fit=fit,
+        N    = fit$N,
+        N.lcl= fit.ci[1],
+        N.ucl= fit.ci[2],
+        N.se = (fit.ci[2]-fit.ci[1])/(2*1.96))
+  
+})
+
+```
+
+The estimated population abundances from the Schnabel method and the original pooled-Petersen method for Sockeye are in **Table 21**.
+
+```{r Table 21, echo=FALSE, message=FALSE, warning=FALSE}
+N.hat <- plyr::ldply(n.fit, function(x){
+  data.frame(Species=x$Species,
+             year=x$year,
+             N = x$N,
+             N.se=x$N.se,
+             N.lcl=x$N.lcl,
+             N.ucl=x$N.ucl)
+})
+
+sock.temp <- merge(N.hat, plyr::rename(all.summary[,c("Species","year","N.est","N.se")],
+                                  c("N.est"="PP.N.est",
+                                    "N.se" ="PP.N.se")), by=c("Species","year"))
+
+
+kable(sock.temp[,c("Species","year","N","N.se","PP.N.est","PP.N.se")], row.names=FALSE,
+      caption="Table 21: Estimated abundance from Schnabel method compared to Pooled-Petersen",
+      col.names=c("Species","year",
+                  "Estimate","SE",
+                  "Estimate","SE"),
+      digits=c(0,0, 0,0, 0,0 ))  %>% 
+      add_header_above(c(" " = 2, 
+                         "Schnabel method"=2,
+                         "Pooled Petersen"=2)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+  
+```
+
+The Sockeye Schnabel estimates again tended to be larger than the Pooled-Petersen estimators. As with the Coho, there does not appear to be a consistent increase in the marked fraction, i.e. if the number of tags applied in the population doubles, the marked fraction should also double. A summary of the Sockeye marked-fractions over time is in **Table 22**.
+
+```{r Table 22, echo=FALSE, message=FALSE, warning=FALSE}
+# get the marked fractions at each sampling time
+mf <- plyr::ldply(n.fit, function(x){
+   #browser()
+   res <- data.frame(Species=x$Species, year=x$year,
+                     n=x$fit$n, M=x$fit$M, m=x$fit$m)
+   res$mf <- res$m/ res$n
+   res
+})
+
+kable(mf[,c("Species","year","n","M","m","mf")], row.names=FALSE,
+      caption="Table 22: Estimated marked fraction from Schnabel method",
+      col.names=c("Species","year",
+                  "n","M","m","Marked fraction"),
+      digits=c(0,0, 0,0,0, 3 ))  %>% 
+      add_header_above(c(" " = 2, 
+                         "Summary stats"=3,
+                         " "=1)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+  
+```
+
+## Status quo model - Pooled Lincoln-Petersen
+
+### Status quo model - Coho
+
+Using the status quo method, where all Witset applied tags are pooled together as one tagging occasion and *Toboggan Creek* is the second capture occasion, we simplify the Schnabel estimate down to all tags applied at Witset and a single recapture occasion at *Toboggan* (**Table 19**). 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+#Finnegan's version of the Witset MR estimates:
+
+t.cap.hist.FIN <- plyr::ddply(t.witset, c("Species","year","myTagNumber"), function(x){
+   # if a tag number is present, then this is a single fish and away we go
+   freq=0
+   hist=".."
+   
+   if(!is.na(x$myTagNumber[1])){  # applied in campground or recaptured (from those released) on canyon or t.creek
+     #browser()
+     freq <- 1
+     hist <- "00"
+     select <- x$TagStatus %in% c("A","A2","AR") & x$Location_Code %in% c("Campground","Canyon")
+     if( any(select)) {
+        substr(hist,1,1) <- '1'
+     }
+     select <- x$TagStatus %in% c("R","A","A2","AR") & x$Location_Code %in% "T.Creek"
+     if( any(select)){
+        substr(hist,2,2) <- '1' 
+     }
+   }
+   data.frame(hist=hist, freq=freq)
+})
+# exclude histories that are missing
+t.cap.hist.FIN <- t.cap.hist.FIN[ t.cap.hist.FIN$hist != "..",]
+
+xtabs(~year+hist,data=t.cap.hist.FIN)
+
+```
+
+```{r Table 19, echo=FALSE, message=FALSE, warning=FALSE}
+cap.hist.wideFIN <- tidyr::pivot_wider(t.cap.hist.FIN,
+                                    id_cols=c("Species","year"),
+                                    names_from="hist",
+                                    values_from="freq",
+                                    values_fill=0,
+                                    values_fn=sum) 
+cap.hist.wideFIN$n1 <- apply(cap.hist.wideFIN[,c("10","11")],1,sum, na.rm=TRUE) # this is the total fish tagged at witset 
+cap.hist.wideFIN$n2 <- t.unmarked$t.unmarked.3+cap.hist.wideFIN$"11" # number of fish examined at Toboggan
+cap.hist.wideFIN$m2 <- cap.hist.wideFIN$"11" # recaps at Toboggan
+
+# Compute the Petersen estimator for Witset for each species-year combination
+
+all.summaryFIN <- plyr::adply(cap.hist.wideFIN,1, function(x){
+   est <- SimplePetersen( x$n1, x$m2, x$n2-x$m2)
+   RSE=round(est$N.se/est$N.est,2) 
+   data.frame(N.est=round(est$N.est), N.se=round(est$N.se), RSE=RSE)
+})
+
+tempFIN <- all.summaryFIN[,c("Species","year","n1","n2","m2","N.est","N.se","RSE")]
+tempFIN[ is.na(tempFIN)] <- NA
+
+kable(tempFIN, caption = "Table 19: Pooled Lincoln-Petersen Estimate (Finnegan Method) from pooled Witset tags to Toboggan Creek Fence.") %>%  
+  kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+### Status quo model - Sockeye: 
+
+Using the status quo method, where all Witset applied tags are pooled together as one tagging occasion and *Nanika River* is the second resight occasion, we simplify the Schnabel estimate down to all tags applied at Witset and a single recapture occasion at *Nanika* (**Table 23**).
+
+```{r Table 23, echo=FALSE, message=FALSE, warning=FALSE}
+
+nanika.temp <- sock.temp %>% 
+  select(Species, year, M3,n3,m3)
+
+nanika.LP <- plyr::adply(nanika.temp,1, function(x){
+   est <- SimplePetersen( x$M3, x$m3, x$n3-x$m3)
+   RSE=round(est$N.se/est$N.est,2) 
+   data.frame(N.est=round(est$N.est), N.se=round(est$N.se), RSE=RSE)
+})
+
+kable(nanika.LP, col.names = c("Species", "year", "$M_3$","$n_3$","$m_3$", "Chap Estimate",
+                               "Chap SE", "RSE"), caption = "Table 23: Pooled Population estimate using all applied tags at Witset and single resight location of the Nanika River snorkel") %>% 
+  kableExtra::kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+```
+
+## All Models Compared for Coho and Sockeye:
+
+Finally, we can compare and visualize the results from all models for Coho (**Table 24, Figure 17**) and Sockeye (**Table 25, Figure 18**).
+
+``` {r Table 24, echo=F, message=F, warning=F}
+kable(coho.all <- coho.temp %>% 
+  select(Species, year, InCanyonLP = PP.N.est, seInCanyonLP = PP.N.se, Schnabel=N, seSchnabel = N.se) %>%
+  left_join(tempFIN, by=c("Species","year")) %>% 
+  select(Species, year, InCanyonLP, seInCanyonLP, Schnabel, seSchnabel, StatusQuoLP = N.est, seStatusQuoLP = N.se) %>% 
+  left_join(pp.spas, by=c("Species","year")) %>% 
+  mutate(strata = paste0("s=",spas.final.s,";t=",spas.final.t)) %>% 
+  select(-c(.id, chapman, chapman.se, spas.final.s, spas.final.t)) %>% 
+  select(Species, year, InCanyonLP,seInCanyonLP,SPAS=spas,seSPAS=spas.se,strata,Schnabel,seSchnabel,StatusQuoLP,seStatusQuoLP),
+  caption = "Table 24: Comparison of Coho estimates and standard errors using a pooled Lincoln-Petersen between Witset locations (InCanyonLP), a weekly stratified estimator within the canyon (SPAS and associated pooled strata), a Schnabel estimate using Toboggan as a third capture occasion (Schnabel), and the current pooled Lincoln-Petersen that pools the Witset tags and the second occasion is at the Toboggan Fence (StatusQuoLP).",
+  digits=0) %>% 
+  kableExtra::kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+``` {r Figure 17,  echo=F, message=F, warning=F, fig.cap="Figure 17: Coho estimates and standard error comparisons by model."}
+coho.all.se <- coho.all %>% 
+  select(Species, year, seInCanyonLP,seSPAS,seSchnabel,seStatusQuoLP) %>% 
+  pivot_longer(!c(Species, year), names_to="se.type", values_to = "se") %>% 
+  mutate(estimate.type=substr(se.type, 3,20))
+  
+coho.all.est <- coho.all %>% 
+  select(Species, year, InCanyonLP,SPAS,Schnabel,StatusQuoLP) %>% 
+  pivot_longer(!c(Species, year), names_to="estimate.type", values_to = "estimate") %>% 
+  full_join(coho.all.se, by=c("year","Species", "estimate.type"))
+
+
+ggplot(coho.all.est, aes(x=year), size=1.5)+
+  geom_line(aes(y=estimate, col=estimate.type),position=position_dodge(width=0.1))+
+  geom_errorbar(aes(ymax=estimate+se,ymin=estimate-se, col=estimate.type),
+                position=position_dodge(width=0.1), width=.1)+
+  labs(y="Coho Estimate +/- SE")
+
+```
+
+``` {r Table 25, echo=F, message=F, warning=F}
+kable(sock.all <- sock.temp %>%
+  select(Species, year, InCanyonLP = PP.N.est, seInCanyonLP = PP.N.se, Schnabel=N, seSchnabel = N.se) %>% 
+  left_join(nanika.LP, by=c("Species","year")) %>% 
+  select(Species, year, InCanyonLP, seInCanyonLP, Schnabel, seSchnabel, StatusQuoLP = N.est, seStatusQuoLP = N.se) %>% 
+  left_join(pp.spas, by=c("Species","year")) %>% 
+  mutate(strata = paste0("s=",spas.final.s,";t=",spas.final.t)) %>% 
+  select(-c(.id, chapman, chapman.se, spas.final.s, spas.final.t)) %>% 
+  select(Species, year, InCanyonLP,seInCanyonLP,SPAS=spas,seSPAS=spas.se,strata,Schnabel,seSchnabel,StatusQuoLP,seStatusQuoLP),
+  caption = "Table 25: Comparison of Sockeye estimates and standard errors using a pooled Lincoln-Petersen between Witset locations (InCanyonLP), a weekly stratified estimator within the canyon (SPAS and associated pooled strata), a Schnabel estimate using Nanika as a third capture occasion (Schnabel), and the current pooled Lincoln-Petersen that pools the Witset tags and the second occasion is at the Nanika snorkel (StatusQuoLP).",
+  digits=0) %>% 
+  kableExtra::kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+```
+
+```{r Figure 18, echo=F, message=F, warning=F, fig.cap="Figure 18: Estimate and error comparison for Sockeye."}
+
+sock.all.se <- sock.all %>% 
+  select(Species, year, seInCanyonLP,seSPAS,seSchnabel,seStatusQuoLP) %>% 
+  pivot_longer(!c(Species, year), names_to="se.type", values_to = "se") %>% 
+  mutate(estimate.type=substr(se.type, 3,20), CI95 = se*1.96)
+  
+sock.all.est <- sock.all %>% 
+  select(Species, year, InCanyonLP,SPAS,Schnabel,StatusQuoLP) %>% 
+  pivot_longer(!c(Species, year), names_to="estimate.type", values_to = "estimate") %>% 
+  full_join(sock.all.se, by=c("year","Species", "estimate.type"))
+
+SKLPhistory.raw <- read_excel("moricetown sockeye tagging estimates_v3-copy-29-Jan-2024.xlsx",
+           sheet="SKBFKP", .name_repair = "universal") 
+SKLPhistoryER <- SKLPhistory.raw %>% 
+  select(year=Year, Canadian.ER)
+
+SKLPhistory <- SKLPhistory.raw %>% 
+            filter(Year < 2018) %>% 
+            mutate(Species = "SK", estimate.type = "StatusQuoLP",se.type = "seStatusQuoLP",
+                  Chap = NChapman(FROM.WITSET.DB...SK.marked,total.sockeye.counted,
+                                   total.tags.observed),
+                   seChap = seChapman(FROM.WITSET.DB...SK.marked,total.sockeye.counted,
+                                   total.tags.observed),
+                   CI95Chap = seChap*1.965, Species = "SK") %>% 
+            select(Species,year=Year, estimate.type,se.type, estimate=Chap,se=seChap,CI95=CI95Chap) 
+
+SKLPhistoryER <- SKLPhistoryER %>% 
+  left_join(SKLPhistory) %>% 
+  mutate(total.harvestCA = estimate*Canadian.ER)
+
+ggplot(SKLPhistoryER)+
+  geom_line(aes(x=year, y=Canadian.ER*100))+
+  labs(y="Nanika/Morice ER (Canadian) %")+
+  scale_y_continuous(breaks = seq(0,100,10))+
+  scale_x_continuous(breaks = seq(2001,2023,2))
+
+sock.all.est.hist <- rbind(sock.all.est,SKLPhistory)
+
+ggplot(sock.all.est.hist, aes(x=year), size=1.5)+
+  geom_line(aes(y=estimate, col=estimate.type),position=position_dodge(width=0.1))+
+  geom_errorbar(aes(ymax=estimate+CI95,ymin=estimate-CI95, col=estimate.type),
+                position=position_dodge(width=0.2), width=.1)+
+  labs(y="Sockeye Estimate +/- 95CI")+
+  scale_y_continuous(breaks = seq(0,max(sock.all.est$estimate+sock.all.est$CI95, na.rm=T),10000 ))+
+  scale_x_continuous(breaks = seq(2001,2023,2 ))
+
+ggplot(sock.all.est.hist[sock.all.est.hist$estimate.type %in% "StatusQuoLP",], aes(x=year), size=1.5)+
+  geom_line(aes(y=estimate, col=estimate.type),position=position_dodge(width=0.1))+
+  geom_errorbar(aes(ymax=estimate+CI95,ymin=estimate-CI95, col=estimate.type),
+                position=position_dodge(width=0.2), width=.1)+
+  labs(y="Sockeye Estimate +/- 95CI")+
+  scale_y_continuous(breaks = seq(0,max(sock.all.est$estimate+sock.all.est$CI95, na.rm=T),10000 ))+
+  scale_x_continuous(breaks = seq(2001,2023,2 ))
+  
+```
+
+## Test assumptions of Mark-Recapture (Schwarz and Taylor 1998)
+
+### Assumption: Either or both samples are a simple random sample (or at least mix uniformly)
+
+We can check the assumptions of equal probability of capture or recapture to determine if stratification should be necessary, since theoretically we are violating this assumption because fish tagged later in the season are not available for recapture early in the season.
+
+#### Equal marked fraction
+
+In this method, we examine if the marked fraction was equal across all recapture weeks. The marked-fraction was computed as:
+
+$$\textit{MF}_i=\textit{recaptures of marked fish in week}_i/\textit{all captures in week}_i$$.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# Assess the marked fractions
+mf.min.recap <- 20
+equal.MF <- plyr::dlply(cap.hist, c("Species","year"), function(x){
+   cat("Processing ", x$Species[1], " ", x$year[1], "\n")
+   #if(x$Species[1]=="CO")browser()
+   total.caps <- as.data.frame(xtabs(freq~w2, data=x, exclude=NULL, na.action=na.pass), stringsAsFactor=FALSE)
+   total.caps <- total.caps[ !is.na(total.caps$w2),]
+   total.caps <- plyr::rename(total.caps, c("Freq"="total.caps"))
+   total.recaps <- as.data.frame(xtabs(freq~w2, data=x[!is.na(x$w1),], exclude=NULL, na.action=na.pass), stringsAsFactor=FALSE)
+   total.recaps <- total.recaps[ !is.na(total.recaps$w2),]
+   total.recaps <- plyr::rename(total.recaps, c("Freq"="total.recaps"))
+   #browser()
+   mf <- NULL
+   chi.test <- NULL
+   fish.test <- NULL
+   if(nrow(total.caps)>1){
+     mf <- merge(total.caps, total.recaps, by="w2")
+     mf$w2 <- as.numeric(as.character(mf$w2))
+     mf[ is.na(mf)] <- 0
+     mf$mf <- mf$total.recaps / mf$total.caps
+     if(sum(total.recaps$total.recaps, na.rm=TRUE) >= mf.min.recap){ 
+      chi.test  <- chisq.test(cbind(mf$total.recaps, mf$total.caps-mf$total.recaps))
+      fish.test <- fisher.test(cbind(mf$total.recaps, mf$total.caps-mf$total.recaps), simulate.p.value=TRUE)
+     }
+   }
+   list(Species=x$Species[1],
+        year   =x$year[1],
+        mf=mf, 
+        chi.test=chi.test,
+        fish.test=fish.test)
+})
+```
+
+A $k \times 2$ contingency table was created, where $k$ was the number of recapture strata (**Table 5**):
+
+```{r Table 5, echo=FALSE, message=FALSE, warning=FALSE}
+temp <- data.frame(strata=c('1','2','3','...','k'),
+                   marked=c('m1','m2','m3','...','mk'),
+                   unmared=c('u1','u2','u3','...','uk'))
+
+kable(temp, row.names=FALSE,
+      caption="Table 5: Example of contingency table to assess equal marked fraction", 
+      col.names=c("Stratum","Marked fish","Unmarked fish"),
+      digits=c(0,0,0))  %>% 
+      kableExtra::kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+Then the chi-square test for equal proportions across strata was applied. In cases where the numbers in the contingency table were small, the Fisher Exact Test for equal proportions was applied. **Table 6** was the summary of the results of a chi-square and Fisher Exact Test for equal marked fractions. The complete set of contingency tables and test statistics was presented in **Appendix B**.
+
+If the number of recaptures was small, the statistical test was not done. The Fisher Exact Test would be preferred if any of the individual weeks had very small sample sizes.
+
+```{r Table 6, echo=FALSE, message=FALSE, warning=FALSE}
+# show the mf table and the chi-square test
+
+# get the chi.square test
+temp <- plyr::ldply(equal.MF, function(x){
+  chi.p.value  <- x$chi.test$p.value
+  fish.p.value <- x$fish.test$p.value
+  data.frame(chi.p.value=insight::format_p(chi.p.value),
+             fisher.p.value=insight::format_p(fish.p.value))
+})
+
+temp.wide <- tidyr::pivot_wider(temp,
+                        id_cols="year",
+                        names_from="Species",
+                        values_from=c("chi.p.value","fisher.p.value")) %>% arrange(year)
+
+kable(temp.wide[,c("year",
+                   "chi.p.value_CO","fisher.p.value_CO",
+                   "chi.p.value_SK","fisher.p.value_SK")],
+      row.names=FALSE,
+      caption="Table 6: Summary of tests for equal marked fraction",
+      col.names=c("year",
+                  "Chi","Fisher",  
+                  "Chi","Fisher"),
+      digits=c(0,  
+                   0,0, 
+                   0,0))  %>% 
+      kableExtra::add_header_above(c(" " = 1, 
+                         "Coho"=2,
+                         "Sockeye"=2)) %>%
+      kableExtra::kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+```
+
+If the total number of tagged fish was less than `r mf.min.recap`, then the test statistic was not computed. In most cases, there was evidence that the marked fractions were not equal across recapture weeks. In cases of large sample sizes, this may just be a consequence of a very high power to detect small differences in the marked fraction. A plot of the marked fractions over time is in **Figure 10**:
+
+```{r Figure 10, echo=FALSE, message=FALSE, warning=FALSE, fig.width = 6, fig.height=5, fig.cap = "Figure 10: Marked fraction over time."}
+plotdata <- plyr::ldply(equal.MF, function(x){
+     x$mf
+})
+
+ggplot(data=plotdata, aes(x=w2, y=mf, color=as.factor(year)))+
+  #ggtitle("Marked fraction over time")+
+  geom_point()+
+  geom_line()+
+  scale_color_discrete(name="year")+
+  scale_x_continuous(breaks=seq(min(plotdata$w2),max(plotdata$w2),2))+
+  facet_wrap(~Species, ncol=2, scales="free_y")+
+  labs(x="Recovery week")
+```
+
+#### Equal recapture proportion
+
+Similarly, we can examine if the proportion of fish released that were recaptured was equal across all release weeks. The recapture-proportion was computed as 
+
+$$\textit{RF}_i=\textit{recaptures of marked fish released in week}_i/\textit{all releases from week}_i$$.
+
+A $k \times 2$ contingency table was created, where $k$ was the number of release strata, and $R_i$ was the number of fish released with tags in week 1, and $r_i$ was the number of recaptures **Table 7**.
+
+```{r Table 7, echo=FALSE, message=FALSE, warning=FALSE}
+temp <- data.frame(strata=c('1','2','3','...','k'),
+                   marked=c('r1','r2','r3','...','rk'),
+                   unmared=c('R1-r1','R2-r2','R3-r3','...','Rk-rk'))
+
+kable(temp, row.names=FALSE,
+      caption="Table 7: Example of contingency table to assess equal recaptured proportion",
+      col.names=c("Stratum","Recaptured","Not recaptured"),
+      digits=c(0,0,0))  %>% 
+#      add_header_above(c(" " = 1, " "=2, "95% CI" = 2, " " = 1, " " = 1)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+```
+
+As before a chi-square test or Fisher Exact Test can be constructed (**Table 8**).
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, include=F}
+# Assess the recapture fractions
+rf.min.recap <- 20 
+equal.RF <- plyr::dlply(cap.hist, c("Species","year"), function(x){
+   cat("Processing ", x$Species[1], " ", x$year[1], "\n")
+   #if(x$Species[1]=="CO")browser()
+   total.rel <- as.data.frame(xtabs(freq~w1, data=x, exclude=NULL, na.action=na.pass), stringsAsFactor=FALSE)
+   total.rel <- total.rel[ !is.na(total.rel$w1),]
+   total.rel <- plyr::rename(total.rel, c("Freq"="total.rel"))
+   total.recaps <- as.data.frame(xtabs(freq~w1, data=x[!is.na(x$w2),], exclude=NULL, na.action=na.pass), stringsAsFactor=FALSE)
+   total.recaps <- total.recaps[ !is.na(total.recaps$w1),]
+   total.recaps <- plyr::rename(total.recaps, c("Freq"="total.recaps"))
+   #browser()
+   rf <- NULL
+   chi.test <- NULL
+   fish.test <- NULL
+   if(nrow(total.rel)>1){
+     rf <- merge(total.rel, total.recaps, by="w1")
+     rf$w1 <- as.numeric(as.character(rf$w1))
+     rf[ is.na(rf)] <- 0
+     rf$rf <- rf$total.recaps / rf$total.rel
+     if(sum(total.recaps$total.recaps, na.rm=TRUE) >= rf.min.recap){ 
+      chi.test  <- chisq.test (cbind(rf$total.recaps, rf$total.rel-rf$total.recaps))
+      fish.test <- fisher.test(cbind(rf$total.recaps, rf$total.rel-rf$total.recaps), simulate.p.value=TRUE)
+     }
+   }
+   list(Species=x$Species[1],
+        year   =x$year[1],
+        rf=rf, 
+        chi.test=chi.test,
+        fish.test=fish.test)
+
+})
+
+```
+
+
+```{r Table 8, echo=FALSE, message=FALSE, warning=FALSE}
+# show the mf table and the chi-square test
+
+# get the chi.square test
+temp <- plyr::ldply(equal.RF, function(x){
+  chi.p.value  <- x$chi.test$p.value
+  fish.p.value <- x$fish.test$p.value
+  data.frame(chi.p.value=insight::format_p(chi.p.value),
+             fisher.p.value=insight::format_p(fish.p.value))
+})
+
+temp.wide <- tidyr::pivot_wider(temp,
+                        id_cols="year",
+                        names_from="Species",
+                        values_from=c("chi.p.value","fisher.p.value")) %>% 
+  arrange(year)
+
+kable(temp.wide[,c("year",
+#                   "chi.p.value_CH","fisher.p.value_CH",
+                   "chi.p.value_CO","fisher.p.value_CO",
+                   "chi.p.value_SK","fisher.p.value_SK")], row.names=FALSE, 
+      caption="Table 8: Summary of tests for equal recovery proportion",
+      col.names=c("year",
+                  #"Chi","Fisher", 
+                  "Chi","Fisher",  
+                  "Chi","Fisher"),
+      digits=c(0,  
+#                  0,0, 
+                   0,0, 
+                   0,0))  %>% 
+      add_header_above(c(" " = 1, 
+#                        
+                         "Coho"=2,
+                         "Sockeye"=2)) %>%
+#      column_spec(column=3,       width="3cm") %>%
+#      column_spec(column=7,       width="2cm") %>%
+#      column_spec(column=9,       width="2cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+```
+
+If the total number of recaptured fish was less than `r rf.min.recap`, then the test statistic was not computed. In many cases, there was no evidence that the proportion recaptures were not equal across release weeks. For cases of significant differences in proportion of recapture, they may have large sample sizes and therefore a very high power to detect small differences in the recovery proportion.
+
+A plot of the recovery fractions over time was in **Figure 11**:
+
+```{r Figure 11, echo=FALSE, message=FALSE, warning=FALSE, fig.width = 6, fig.height = 5, fig.cap = "Figure 11: Recovery proportions over time."}
+plotdata <- plyr::ldply(equal.RF, function(x){
+     x$rf
+})
+
+ggplot(data=plotdata, aes(x=w1, y=rf, color=as.factor(year)))+
+  #ggtitle("Recovery proportions over time")+
+  geom_point()+
+  geom_line()+
+  scale_color_discrete(name="year")+
+  scale_x_continuous(breaks=seq(min(plotdata$w1),max(plotdata$w1),2))+
+  facet_wrap(~Species, ncol=2, scales="free_y")+
+  labs(x="Release week")
+```
+
+So while there may be statistical differences across release weeks, the curves, with few exceptions, do not trend in any direction.
+
+Detailed results are shown in **Appendix C**.
+
+#### Toboggan Creek Fish are a Random Sample?
+
+Toboggan Creek is assumed to be a representative sample of the Coho passing through the Witset program at the Canyon. We examined if the timing of the tags applied in the Campground and the Canyon and subsequently recaptured in the *T.Creek* sample in **Figure 14**. If there was a large trend (e.g. Toboggan fish pass through the canyon early but not late in the season) then Toboggan may not be a random sample.
+
+```{r Figure 14, echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Figure 14: Summary of when recaptured tags at T.Creek were applied relative to entire application timing"}
+# want to look at fish recovered at T.creek, and plot the date of application in the 
+t.tag.date <- t.cap.hist
+t.tag.date$where.applied <- NA
+t.tag.date$when.applied  <- as_date(NA)
+t.tag.date$where.applied[ substr(t.tag.date$hist,1,1)=="1" ] <- "Campground"
+t.tag.date$when.applied [ substr(t.tag.date$hist,1,1)=="1" ] <- 
+      as_date(t.tag.date$date1[ substr(t.tag.date$hist,1,1)=="1" ])
+t.tag.date$where.applied[ substr(t.tag.date$hist,1,2)=="01"] <- "Canyon"
+t.tag.date$when.applied [ substr(t.tag.date$hist,1,2)=="01"] <- 
+      as_date(t.tag.date$date2[ substr(t.tag.date$hist,1,2)=="01"])
+t.tag.date$T.creek.recap <- substr(t.tag.date$hist,3,3)=="1"
+
+# we need to standardize the date so the plot appears on 1 panel properly
+t.tag.date$when.applied.jdate <- lubridate::yday(t.tag.date$when.applied)
+t.tag.date$year <- t.tag.date$year +         0.3*as.numeric(t.tag.date$where.applied=="Canyon")
+
+#xtabs(~Year+where.applied, data=t.tag.date, exclude=NULL, na.action=na.pass)
+
+ggplot(data=t.tag.date, aes(x=when.applied.jdate, y=year))+
+  #ggtitle("Summary of when recaptured tags at T.Creek were applied relative to entire application timing")+
+  geom_point( position=position_jitter(h=.1), alpha=0.5)+
+  xlab("When tags applied (julian date)\nBottom row for each year is Campground\nTop row for each year is Canyon\nRed indicates a recaptured fish at T.Creek")+
+  geom_point(data=t.tag.date[t.tag.date$T.creek.recap,],
+             position=position_jitter(h=.1), color="red")+
+  scale_y_continuous(breaks=2000:3000)
+
+
+```
+
+```{r toboggan time between capture-recapture 2, echo=F, message=F, warning=F, fig.cap="Figure Time.between: timing of fish original tagging date and the recapture date. black line indicates same day travel from tagging location to Toboggan Creek. Point colour indicates original capture location."}
+t.tag.date.temp <- t.tag.date %>% 
+  filter(hist %in% c("011","101","111")) %>% 
+  mutate(time.between = ifelse(is.na(date1),date3-date2, date3-date1))
+
+
+ggplot(t.tag.date.temp)+
+  geom_point(aes(x=as_date(when.applied.jdate,origin="2022-01-01"), y=as_date(yday(date3),origin="2022-01-01"),col=where.applied),alpha=0.5)+
+  geom_abline(intercept=0, slope=1)+
+  facet_wrap(~floor(year))+
+  scale_x_date(limits = c(), 
+               breaks="2 weeks", date_labels = format("%d-%b"))+
+  scale_y_date(breaks="2 weeks", date_labels = format("%d-%b"))+
+  labs(x="When applied", y="When recaptured")+
+  theme(axis.text.x = element_text(angle=45,hjust=1))
+
+ave.time.to.arrival <- t.tag.date.temp %>% 
+  group_by(w3,year = floor(year)) %>% 
+  summarize(mn.time.between = mean(time.between)) %>% 
+  arrange(year)
+
+# assign tags that were fumbled - DONE
+# tobog[which(tobog$unknown.witset.tag %in% "un"),]
+# 
+# tobog %>% 
+#   filter(unknown.witset.tag %in% "un") %>% 
+#   mutate(w3 = isoweek(date)) %>% 
+#   left_join(ave.time.to.arrival, by=c("year"="Year","w3")) %>% 
+#   mutate(tag.week = round(w3-mn.time.between/7,0)) %>% 
+#   write_csv("assign.orphan.tag.csv")
+```
+
+Overall, we do not see any trends in the Toboggan fish relative to run timing. 
+
+```{r toboggan time between capture-recapture 1, eval=F, echo=F, message=F, warning=F,fig.cap="Figure Time.between.Box: Boxplots represent how many days the coho took to reach Toboggan after initial tagging at Witset. Histogram bars are the total coho (marked and unmarked) that passed through the Toboggan fence that week."}
+#figuring out the duration between the first and last catch
+
+
+
+t.data.sum <- t.data %>% 
+  filter(Species %in% "CO") %>% 
+  mutate(w3 = isoweek(date)) %>% 
+  group_by(year, w3) %>% 
+  summarize(weekly.total = length(Species), 
+            weekly.total.scaled = weekly.total/20)
+
+# ggplot(t.data)+
+#   geom_histogram(aes(x=isoweek(date), fill=!is.na(RecapturedTagNumber)), 
+#            stat = "count")+
+#   facet_wrap(~as.factor(floor(year)))
+
+ggplot()+
+  geom_bar(data=t.data.sum, aes(x=w3, y=weekly.total.scaled), 
+           stat = "identity", fill="grey75")+
+  geom_boxplot(data = t.tag.date.temp, aes(x=w3, y=time.between, group=w3), varwidth = F)+
+  scale_x_continuous(breaks=seq(min(t.data.sum$w3),max(t.data.sum$w3),2))+
+  scale_y_continuous(sec.axis = sec_axis(~.*20, name="Total coho per week"))+
+  facet_wrap(~as.factor(floor(year)))+
+  labs(x="recapture week (Toboggan)",y="time since tagging (days)")+
+  theme(axis.text.y.right = element_text(colour="grey75"),
+        axis.title.y.right = element_text(colour="grey50"))
+
+# ggplot(t.tag.date.temp)+
+#   geom_point(aes(x=yday(date3), y=time.between, 
+#                  col=where.applied), alpha=0.5)+
+#   geom_smooth(aes(x=yday(date3), y=time.between, 
+#                  col=where.applied), method="loess", se=F)+
+#   facet_wrap(~floor(Year))+
+#   labs(y="time between (days)")
+# 
+# ggplot(t.tag.date.temp)+
+#   geom_point(aes(x=when.applied.jdate, y=time.between, 
+#                  col=where.applied), alpha=0.5)+
+#   geom_smooth(aes(x=when.applied.jdate, y=time.between, 
+#                  col=where.applied), method="loess", se=F)+
+#   facet_wrap(~floor(Year))+
+#   labs(y="time between (days)")
+```
+
+#### Sizes
+
+We checked whether fish tagged at capture were a random sample from the population. For this we can use fork length, which is measured for most fish captured at Witset, whether harvested, released or tagged (**Figure 2**). We see that there is a clear difference in size between fish that are tagged, harvested and released without a tag over these six years. Released fish were usually smaller than either tagged or harvested fish, and harvested fish were usually overlapping the tagged fish in size but larger. 
+
+```{r Figure 2 compare FL all sp, echo=F, warning=F, fig.cap="Figure 2: Boxplots of Fork Length (in cm) of CH = Chinook, CO = Coho, SK = Sockeye, and ST = Steelhead that were either Tagged, Released without tagging, or Harvested on capture between 2018 and 2023. Box size is related to the number of fish in each category. Recaptures are not included.", fig.width = 7, fig.height = 6}
+plot.forklengthallsp
+```
+
+For Sockeye and Coho we checked to see if these patterns varied by year or capture location. **Figure 3** shows coho sizes among years and between the Campground and Canyon. Overall the Campground appeared to release smaller Coho, while the Canyon released a larger range of sizes. Harvested fish were in a narrow and larger size band, which sometimes did not have much overlap with the tagged fish range of sizes. The same pattern occurred with Sockeye (**Figure 4**), though there was generally a narrower spread of fork lengths. These figures show that the tagged fish were not a simple random sample of the population, and instead likely best represent the middle-range of each population. The pattern of the size of tagged fish appeared similar between Witset locations within a given year; however, the Nanika snorkel does not distinguish between sizes and instead samples whatever sockeye have made it to the spawning grounds. 
+
+```{r Figure 3 compare FL CO, echo=F, warning=F, fig.cap="Figure 3: Boxplots of Fork Length (in cm) of A. Coho caught at the Campground and B. Coho caught at the Canyon. Box size is relative to the number of fish in each category. Recaptures are not included.", fig.width=7, fig.height = 8}
+plot(plot.forklengthCO.location)
+```
+
+```{r Figure 4 compare FL SK, echo=F, warning=F, fig.cap="Figure 4: Boxplots of Fork Length (in cm) of A. Sockeye caught at the Campground and B. Sockeye caught at the Canyon. Box size is relative to the number of fish in each category. Recaptures are not included.", fig.width=7, fig.height = 8}
+plot(plot.forklengthSK.location)
+```
+
+For Coho we can also see which of the tagged Witset fish were recaptured at Toboggan to see if there was any noticeable size differences between fish marked at Witset Campground and Canyon and fish recaptured at Toboggan (**Figure 5**). All measurements are taken from the Witset program.
+
+```{r Figure 5 compare FL Tobog camp canyon, echo=F, warning=F, fig.cap="Figure 5: Coho tagged at the Campground (top) and Canyon (bottom) and recaptured at Toboggan (blue) or not recaptured (pink). The width of the boxplot represents relative sample size.", fig.width=7, fig.height = 8}
+plot(plot.forklengthCOtobog)
+```
+
+### Assumption: The population is closed
+
+Between the two sampling locations at the Witset Canyon on the mainstem Bulkley River, this project has the opportunity to sample a large component of the Bulkley-Morice salmon returns as they pass upstream to their spawning streams. According to current genetic information for Coho in the Bulkley-Morice watershed, there should be no genetic difference between Toboggan Creek coho and the rest of the Bulkley-Morice coho (R. Whitmore, *pers. comm.*). Therefore, even though Toboggan represents under 15% of the total Bulkley-Morice coho spawners this does not violate the closed population assumption, since it just appears to be a subsample of the population. For Sockeye, there are multiple Conservation Units upstream of Witset canyon. According to past escapement counts, the Nanika Sockeye represent a large proportion of the Bulkley-Morice sockeye (BC16, data on file). If we assume that characteristics of the Nanika sockeye are representative of other Bulkley-Morice populations (e.g. captured in the same proportion, similar run timing, etc.) then the closed population assumption holds.
+
+One issue that was investigated for Steelhead in reference to this assumption but has not been looked at for salmon species is the issue of drop-back, or fallback (Welch et al. 2010). This study showed one third of the Steelhead tagged did not travel upstream following tagging at Witset Campground and Canyon. Detecting fallback is important for the salmon estimates because tagged fish may exit the study area downstream at rates disproportionate to untagged fish. Unlike Steelhead, salmon are travelling upstream to spawn shortly after, so one would expect that salmon should show less fallback than Steelhead.
+
+Telemetry information is not currently available to help understand the rate of fallback in salmon species. However, we have a very large sample of salmon tagged during this project and can find series of recaptures between locations in the Coho and Sockeye data. Some fish that were tagged at the Canyon are recaptured downstream at the Campground, which indicates that there is at least some fallback back downstream of the Canyon tagging site (**Figure 6**). In 2023, this seemed to be higher for Sockeye than in the last few years.
+
+```{r Figure 6 fallback from canyon to campground, echo=F, warning= F, fig.cap="Figure 6: Percent of fish tagged at the Canyon that fell back to the Campground. Size of the point indicates the actual number.",fig.width = 6.5, fig.height = 5}
+plot.fallback
+```
+
+Though the proportion of fish recaptured is low, we can also see if these same fish re-ascended to the Canyon at the same rate as fish newly tagged at the Campground. If the Canyon was causing tagged fish to drop back out of the study area or causing a high rate of mortality we would expect the rate of re-ascent to be very low compared to newly tagged Campground fish. There were very few Coho that were recaptured re-ascending the Canyon, but we can see that the re-ascending Sockeye mirrored the newly tagged Sockeye rate, though at a slightly lower rate (**Figure 7**). Whether Coho were trap-shy (i.e. avoided the dip nets the second time around) or left the area altogether is unknown, and it is difficult to say much conclusively with such small sample sizes. 
+
+```{r Figure 7 fallback reacsending, echo=F, warning= F, fig.cap="Figure 7: Percent of fallback fish that were again captured at the Canyon (solid lines). The percentage of fish newly tagged at the Campground and recaptured at the Canyon is compared in the dashed line. Size of the point indicates the actual number or fallbacks recaptured at the Canyon.",fig.width = 6.5, fig.height = 5}
+plot.fallbackreascend
+```
+
+### Assumption: There is no tag loss
+
+A secondary batch mark in the form of caudal hole punch was applied to most fish at the Campground and Canyon when they receive an anchor tag, but it appears that the protocol may have changed through the years and the secondary mark was not consistently applied or noted. In 2023, a greater effort to recognize tag losses was made at the Toboggan Fence by investigating a smaller proportion of fish more thoroughly. Overall, 4621 of 6753 Coho were closely investigated for tag loss. 11 had lost their tags, which would theoretically be about 16 if all fish had been investigated. If 362 had tags and 16 had lost their anchor tags from Witset, this would be about a rate of `r round(16/(16+362),2)` % tags lost. This is not nearly enough to account for the difference in estimate between the in-canyon estimate and the Schnabel or StatusQuo estimates, but would mean an estimate of approximately 4000 fewer fish in the StatusQuo estimate. 
+
+### Assumption: Tagging status is determined without error
+
+There were errors in tag number recording at every capture occasion. A substantial effort was put into fixing these issues, which ranged from mismatches between tag status (newly applied, recaptured, release, harvested, etc.) and the tag numbers, missing or incorrect tag number or colour recorded, duplicate tag numbers, incorrectly recorded tag colours, recaptured numbers that were never applied, tag numbers recaptured before they were applied, mis-ID'd fish species, and fish lost (fumbled) before the tag number could be recorded. Over 1160 rows of data (one row is equivalent to one fish encounter) were corrected from 2018 to 2023 for Coho and Sockeye before this analysis. In a program with thousands of tags applied every year, it is not surprising that there were errors of this magnitude.
+
+To avoid issues with tag colours, we used tag colour only to filter out non-Witset tags at Toboggan Creek fence and otherwise used only the tag number and tag status to assign capture histories. After the effort to correct tag records at Witset, there were still some tags that were not able to be corrected (**Table 2**). However, the overall number of tag recognition errors was likely low since this is a dedicated mark-recapture study and each fish is handled and inspected, so it is likely that this assumption holds.
+
+```{r Table 2 problems remaining, echo=F, warning=F}
+options(knitr.kable.NA = '0')
+knitr::kable(problems.remaining, 
+             col.names = c("Year","Species","Applied Tag Colour Only",
+                           "Recap Tag Colour Only","Orphaned Recaps",
+                           "Applied Status No Tag",
+                           "Recap Status No Tag", 
+                           "Applied Status and Harvested"),
+             caption = "Table 2: Unresolved applied and recapture tag issues. Applied Tag Colour Only= No associated tag number for applied tags; Recap Tag Colour Only = No associated tag number for recap tags; Orphaned Recaps = Recapture tag numbers with no applied tag record; Applied Staus No Tag = the TagStatus was assigned to A, A2, AR but there was no applied tag colour or number; Recap Status No Tag = TagStatus was R or AR with no recapture tag colour or number; Applied Status and Harvested = TagStatus assigned A, A2, or AR but was also apparently harvested.") %>% 
+  #add_header_above(c(" " = 4, "Mismatched Tag Status"=3)) %>% 
+  kableExtra::kable_styling("bordered", position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+options(knitr.kable.NA = '')
+```
+
+### Assumption: Tagging has no effect on the behaviour of the fish
+
+We do not have telemetry studies, but we looked at changes in the behaviour of tagged fish with fallback or dropback between components of the Witset program: Canyon fish that dropped back and were recaptured at the Campground would sometimes reascend like other newly tagged fish (see Assumption: The population is closed). Though there were small sample sizes, it does appear that these fish re-ascend less than newly tagged fish. We can also look to see if Campground and Canyon tagged coho have an equal probability of being caught at the Toboggan Creek fence to see if there is different success between the two sites (Figure 8).
+
+```{r Figure 8 recap origin toboggan, echo=F, warning=F, fig.cap = "Figure 8: Percent of tags applied at the Campground (blue) and Canyon (pink) that were recaptured at Toboggan Creek Fence. The total number applied at each location is represented by the size of the point", fig.width = 6.5, fig.height = 5}
+plot.recap.origin.tobog
+```
+
+<!-- One last additional check is that of serial recaptures - i.e. fish that are recaptured many times at a particular location rather than moving on upstream from the campground (**Figure Camp.serial.recaptures**) or the canyon (**Figure Canyon.serial.recaptures**) immediately following tagging. In the mark-recapture models we only used the first recapture, so this additional information is thrown out. Overall, the number of serial recaps has declined over the years to a sustained low level, and may be either a result of a change in protocol to fish less throughout the day, or that the fish are milling less long in the capture locations.  -->
+
+```{r Figure Camp.serial.recaptures, eval=F, echo=F, message=F, warning=F, fig.width=6, fig.height= 5, fig.cap="Figure: Serial recaptures of fish at the Campground."}
+plot.camp.recaps
+
+```
+
+
+```{r Figure Canyon.serial.recaptures, eval=F,echo=F, message=F, warning=F, fig.width=6, fig.height= 5, fig.cap="Figure: Serial recaptures of fish at the Canyon."}
+plot.canyon.recaps
+
+```
+
+## Compare Results with Other Data Sources
+
+With the conflicting estimates from the different models, we can look elsewhere to see how well these estimates track with external, related data sources. Since the Toboggan coho are not a separate genetic entity from the Bulkley-Morice Coho, the Toboggan Creek estimates for Coho may track trends for the larger Bulkley-Morice population. The annual escapement estimate to Toboggan Creek (fence plus downstream spawner estimate) with hatchery returns removed is in **Figure Toboggan.Estimate**. The fence was fish-tight in every year except 2020, when only the last part of the season was missed, and overall the trend has been in increasing returns to the creek over this 2018 to 2023 time period.
+
+```{r Figure Toboggan Yearly Summary, echo=F, message=F, warning=F, fig.width=6, fig.height= 5, fig.cap="Figure Toboggan.Estimate: Yearly estimate of Toboggan Creek coho with hatchery fish removed, which includes the total fish fence counts and downstream spawners."}
+ggplot(tobog.yearly.sum[tobog.yearly.sum$Year %in% yr.select,])+
+  geom_point(aes(x=Year,y=EstimateFromKP-TotalAdiposeReturn))+
+  geom_line(aes(x=Year,y=EstimateFromKP-TotalAdiposeReturn))+
+  scale_y_continuous(breaks = seq(0,7000,1000))+
+  labs(x="Year",y="Toboggan Creek Coho Return")
+  
+```
+
+We can do the same comparison with the Nanika River aerial estimates for Sockeye. These represent a large numerical component of the Bulkley-Morice populations and so should track the main estimates fairly well. However, these estimates are currently under review due to some differences in AUC estimation methods between B. Finnegan and K. Peck. We can instead look at peak counts for now (**Figure Nanika.peak**). These surveys were conducted by B. Finnegan from 2018 to 2020, an Office of the Wet'suwet'en observer in 2021 and by K. Peck in 2022 and 2023, and do not seem to track any of the population estimates through this six year period.
+
+```{r Figure Nanika.peak, echo=F, message=F, warning=F, fig.width=6, fig.height= 5, fig.cap="Figure Nanika.peak: Aerial survey peak counts of Sockeye in Nanika River from 2018 to 2023. Aerial estimates would be better, but methods are currently under review."}
+ggplot(nanika.aerial.peak[nanika.aerial.peak$Year %in% yr.select,])+
+  geom_point(aes(x=Year, y=Nanika.peak.count))+
+  geom_line(aes(x=Year, y=Nanika.peak.count))+
+  scale_y_continuous(breaks = seq(0,max(nanika.aerial.peak$Nanika.peak.count, na.rm=T)+1000,1000))+
+  labs(x="Year",y="Peak aerial count")
+```
+
+# Discussion
+
+## Comparison of Mark-Recapture Models
+
+### Pooled Lincoln-Petersen In-Canyon
+
+The pooled LP estimates from in-canyon (i.e. from Campground to Canyon) using only applications of tags at the Campground to be recaptured at the Canyon were consistently lower than those using Toboggan or Nanika sites. These estimates were simple, but have the advantage of a consistent methodology between sites, and likely excluding a large amount tag losses or mortality since the distance to travel between these sites is very short. However, these estimates appear to be remarkably lower than some yearly estimates that use a third recapture or re-sight location. They may also underestimate the true uncertainty around the estimate.
+
+### Stratification by Time In-Canyon 
+
+There is no apparent need for stratification by time, since most of the stratified estimates are similar to a fully pooled Petersen estimate. 
+
+### Schnabel Estimates Using Three Capture Occasions
+
+The mark-resight methods using Toboggan Creek as a third capture occasion for Coho and Nanika River as a third location for Sockeye used the original estimates generated between the Campground and Canyon, added additional tags applied at the Canyon and the marked and unmarked fish from the third capture occasion. These estimates used all components of the mark-recapture project, but results differed markedly in some years from the in-canyon estimates. For Coho in 2021, the difference between the Schnabel estimate and the In-Canyon pooled Petersen was `r round(coho.temp$N[which(coho.temp$year %in% 2021)]-coho.temp$PP.N.est[which(coho.temp$year %in% 2021)],0)` fish. In other years, like in 2022, the estimates overlapped closely. There were no major protocol changes in the Witset or Toboggan Creek programs between 2021 and 2023, though there were differences in staff experience, timing of the program from beginning to end, and flow conditions. In these years, the Toboggan Creek fence remained fish-tight throughout the season. When investigating the why behind the huge difference in estimates in 2021, it appears that fish from both tagging locations at Witset had a similar proportion of tagged fish in the Toboggan fence recaptures, though Canyon had slightly lower recapture proportion compared to the Campground in 2021 and 2023 (**Figure 8**). The source of the discrepancy is likely in transit between Witset and Toboggan Creek in the form of high tag losses in the 14 km of river, disproportionate mortality of tagged fish, a lack of recognition of tags at Toboggan fence (e.g. "fumbled" fish not recorded) or a combination of these factors. If there was an issue with tags recorded or applied at Witset, it seems like it occurred at both the Campground and Canyon. 
+
+For Sockeye, 2021 also showed a large difference between the Schnabel and In-Canyon Pooled Petersen. This may have been due to an inexperienced crew in the Nanika survey in that year, since there was a break in continuity after the retirement of B. Finnegan. However, this same outlier exists for two species tagged at the Witset Program with very different third capture occasions. It is possible that the high flows in the fall of 2021 may have affected the tag retention for Coho, but the Sockeye snorkel survey occurred just prior to the large spike in flows caused by fall freshet. IT is likely that the snorkel survey crew changeover had the largest contribution to the 2021 discrepancy.
+
+### The Staus Quo Method
+
+The method used currently for estimating Coho and Sockeye is like the Schnabel estimate, except that there are only two capture occasions in estimating the population size of these two species: Witset and either Toboggan or Nanika. The results from these estimates diverge even more extremely from the In-Canyon estimates because the Schnabel estimate includes some weighting of the In-Canyon estimate in the calculation. The StatusQuo method ignores any detail in the mark-recapture program at Witset, and instead just lumps all marked fish together. In 2022 for Coho there was very little difference between the three methods, but this appears to be the exception. The StatusQuo method also has the smallest standard error around the estimate, which may be artificial. 
+
+### The Most Appropriate Analysis Method?
+
+We have used a number of analysis methods in this review, and the biggest differences were from whether the third capture occasion (Toboggan or Nanika) was used or not. For Coho, estimates using the third occasion were distinctly greater than the in-canyon estimates in 2020, 2021, and 2023. For Coho, there was increased oversight on the Witset and Toboggan Creek programs in 2022 and 2023, so we have a greater understanding of what may have been a factor in these programs. The crew experience at Witset was at a peak in 2022, and the season extended far into the fall for both the Campground and Canyon crews. In 2023, both crews turned over and this likely resulted in some lost datasheets, mis-ID between species, and some inconsistencies in the data collection. Most known data problems were accounted for with re-generated data to fill the gaps, but this may point to more persistent data errors or fish handling problems throughout the season that are harder to identify. 
+
+In 2023, there was a difference of `r coho.all %>% filter(year == 2023) %>% summarize(StatusQuoLP-InCanyonLP) %>% as.numeric() ` Coho between the StatusQuo estimate and the in-Canyon Lincoln-Petersen, which is close to a 30 % difference. This would mean there would have to be a significant unrecorded loss of tags (which was only in the realm of 4000 fish in 2023), fallback out of the area, handling/tagging mortality, or perhaps that the Witset program was catching and tagging only 70 % of the population arriving at Toboggan. It could be that all of these factors add up to account for this difference. However, these factors do not appear to be consistent among years and likely need to be measured in every year if we need to be certain.
+
+For Sockeye, there has been a more consistent difference between the model results from 2018 to 2023, with the notable exception of 2021 where the models with Nanika included were much greater than the in-canyon estimates. Like the Coho results, the differences with Nanika included may be a combination of an underestimate of tag loss, handling/tagging mortality, but also the sampling of all sizes during the snorkel survey and only mid-range to larger Sockeye in the tagging program. 
+
+
+# References
+
+Darroch, J. N. (1961). 
+The two-sample capture-recapture census when tagging and sampling are stratified. 
+Biometrika, 48, 241–260. https://www.jstor.org/stable/2332748
+
+Plante, N., L.-P Rivest, and G. Tremblay. (1988). 
+Stratified Capture-Recapture Estimation of the Size of a Closed Population. 
+Biometrics 54, 47-60. https://www.jstor.org/stable/2533994
+
+Schnabel, Z.E. 1938. 
+The estimation of the total fish population of a lake. 
+American Mathematician Monthly, 45:348-352.
+
+Carl James Schwarz (2019). 
+SPAS: Stratified-Petersen Analysis System. R package version 2020.1.1.
+https://CRAN.R-project.org/package=SPAS
+  
+Schwarz, C. J., & Taylor, C. G. (1998). 
+The use of the stratified-Petersen estimator in fisheries management with an 
+illustration of estimating the number of pink salmon (Oncorhynchus gorbuscha) 
+that return to spawn in the Fraser River. Canadian Journal of Fisheries and Aquatic Sciences, 55, 281–296.
+https://doi.org/10.1139/f97-238
+
+Wickham et al., (2019). Welcome to the tidyverse. Journal of Open Source Software, 4(43),
+  1686, https://doi.org/10.21105/joss.01686
+
+Wickham H, Bryan J (2022). _readxl: Read Excel Files_. R package version 1.4.0,
+  <https://CRAN.R-project.org/package=readxl>.
+
+Garrett Grolemund, Hadley Wickham (2011). Dates and Times Made Easy with lubridate. Journal
+  of Statistical Software, 40(3), 1-25. URL https://www.jstatsoft.org/v40/i03/.  
+
+Auguie B (2017). _gridExtra: Miscellaneous Functions for "Grid" Graphics_. R package
+  version 2.3, <https://CRAN.R-project.org/package=gridExtra>.
+  
+Yihui Xie (2022). knitr: A General-Purpose Package for Dynamic Report Generation in R. R
+  package version 1.39.
+  
+Zhu H (2021). _kableExtra: Construct Complex Table with 'kable' and Pipe Syntax_. R package
+  version 1.3.4, <https://CRAN.R-project.org/package=kableExtra>.
+
+Ogle, D.H., J.C. Doll, P. Wheeler, and A. Dinno. 2022. FSA: Fisheries Stock Analysis. R
+  package version 0.9.3, https://github.com/fishR-Core-Team/FSA.
+  
+Albers S (2017). “tidyhydat: Extract and Tidy Canadian Hydrometric Data.” _The Journal of
+  Open Source Software_, *2*(20). doi:10.21105/joss.00511
+  <https://doi.org/10.21105/joss.00511>, <http://dx.doi.org/10.21105/joss.00511>.
+  
+Fisheries and Oceans Canada North Coast Stock Assessment Branch. 2022. Northern British Columbia Coho Salmon Information Summary. Pacific Salmon Comm. Tech. Rep. No. 47: 73 p.
+
+Holtby B., Finnegan B., Chen D., and Peacock D. 1999. Biological Assessment of Skeena River Coho Salmon. Canadian Stock Assessment Secretariat Research Document 99/140.
+
+Chapman D. 1954. The Estimation of Biological Populations. The Annals of Mathematical Statistics
+Vol. 25(1). https://www.jstor.org/stable/2236510 
+
+Milne D. 1950. Moricetown Falls as a Hazard to Salmon Migration. Bulletin of Fisheries Resource Board of Canada 86.
+
+Schwarz C. and Bonner S. 2011. A spline-based capture-mark-recapture model applied to estimating the number of steelhead within the Bulkley River passing the Moricetown Canyon in 2001-2010. Report on file, DFO Smithers.
+
+
+
+# Appendix A - Example of Field Data Sheets used in 2022
+
+```{r field data sheet 2021, echo=FALSE, fig.cap="Example Field Data Sheet used in 2021", out.width = '100%'}
+knitr::include_graphics("DataSheetExample_2021.png")
+```
+
+```{r field data sheet 2022, echo=FALSE, fig.cap="Example Field Data Sheet used in 2022", out.width = '100%'}
+knitr::include_graphics("DataSheetExample_2022.png")
+```
+
+# Appendix XX - Diagrams of Mark-Recapture models
+
+```{r MR diagrams, echo=FALSE, fig.cap="Diagrams of mark-recapture models tested for Coho and Sockeye.", out.width = '100%'}
+knitr::include_graphics("Diagram-COSK-In-canyonLP.png")
+knitr::include_graphics("Diagram-COSK-StratLP.png")
+knitr::include_graphics("Diagram-CO-Schnabel.png")
+knitr::include_graphics("Diagram-SK-Schnabel.png")
+knitr::include_graphics("Diagram-CO-statusquo.png")
+knitr::include_graphics("Diagram-SK-statusquo.png")
+```
+
+# Appendix B - Details of the tests for equal marked fractions
+
+Here are the detailed tables and test statistics for the tests of equal marked-fraction.
+If there are no entries for a Species-Year, the number of recaptures is too small to construct a test.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plyr::l_ply(equal.MF, function(x){
+   cat("\n\n\n*** ",x$Species, " ", x$year, "\n")
+   print(x$mf)
+   print(x$chi.test)
+   print(x$fish.test)
+})
+```
+
+# Appendix C - Details of the tests for equal recovery proportions
+
+Here are the detailed tables and test statistics for the tests of equal recovery proportions
+If there are no entries for a Species-Year, the number of recaptures is too small to construct a test.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plyr::l_ply(equal.RF, function(x){
+   cat("\n\n\n*** ",x$Species, " ", x$year, "\n")
+   print(x$rf)
+   print(x$chi.test)
+   print(x$fish.test)
+})
+```
+
+# Appendix D - Details on stratified Petersen matrices and automated pooling rules
+
+The main $s \times t$ matrix is the number of fish released in each week and
+recaptured in each week as seen before
+
+The second-to-final final column is the number of fish tagged, released, but never recaptured.
+The final column are the pooling-rules from the automated system. For example, weeks with have
+the same value will be pooled, i.e., if the pooling vector is c(1,1,3,4,5,6, 10,10,10,10),
+then weeks 1 and 2 are pooled and weeks 7 to 10 are pooled.
+
+The second-to-final row is the number of unmarked fish captured in the *Canyon* during this statistical week.
+The final row are the pooling rules for the columns following the same convention as the pooling rules
+for rows.
+
+Note that if the pooling vector is c(1,1,1,...,1) then all rows/or all columns are pooled.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# review the input matrices
+plyr::l_ply(spas.mat, function (x){
+   cat("\n\n\n*** ", x$Species, x$year, "\n")
+   print(cbind(rbind(x$spas.red, c(x$col.pool, NA)), c(x$row.pool,NA,NA)))
+   #invisible(readline(prompt="OK?"))
+})
+```
+
+# Appendix E - Complete set of SPAS results
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# print the spas model results
+plyr::l_ply(spas.mat, function (x){
+   cat("\n\n***** Starting SPAS fit for ", x$Species, ' ' , x$year, "\n")
+   #browser()
+   SPAS.print.model(x$spas.fit)
+   #input <- readline(prompt="OK?")
+})
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
