@@ -29,7 +29,7 @@ source("SimplePetersen.R")
 
 #from db v2: 2012 to 2022
 
-nms <- names(read_excel("Tag_Data_Sockeye.xlsx", n_max = 0))
+nms <- names(read_excel("Tag_Data_Coho.xlsx", n_max = 0))
 ct <- ifelse(grepl("^AppliedColor2", nms), "text", 
              ifelse(grepl("^AppliedTagNumber2", nms), 
                     "numeric","guess"))
@@ -159,14 +159,15 @@ effort.camp.byyr <- effort.camp.byday%>%
             tot.SK = sum(tot.SK),tot.CO = sum(tot.CO),tot.CH = sum(tot.CH),
             tot.ST = sum(tot.ST),
             CPUEbyset.SK = mean(CPUEbyset.SK),CPUEbyset.CO = mean(CPUEbyset.CO),
-            CPUEbytime.SK = mean(CPUEbytime.SK, na.rm=T),CPUEbytime.CO = mean(CPUEbytime.CO, na.rm=T))
+            CPUEbyhr.SK = mean(CPUEbyhr.SK, na.rm=T),CPUEbyhr.CO = mean(CPUEbyhr.CO, na.rm=T))
 effort.camp.byyr
 
 ggplot(effort.camp.byyr)+
   geom_line(aes(x=sample_year,y=CPUEbyset.SK), col="black")+
-  geom_line(aes(x=sample_year,y=CPUEbytime.SK), col="red")+
+  geom_line(aes(x=sample_year,y=CPUEbyhr.SK), col="red")+
   geom_line(aes(x=sample_year,y=CPUEbyset.CO), col="blue")+
-  geom_line(aes(x=sample_year,y=CPUEbytime.CO), col="purple")
+  geom_line(aes(x=sample_year,y=CPUEbyhr.CO), col="purple")+
+  labs(y="CPUE")
 
 
 
