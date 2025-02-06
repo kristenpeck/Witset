@@ -3,6 +3,7 @@
 
 # Author: Kristen Peck
 # Created: fall 2021, updated Fall/winter 2022/23
+# revisited Feb 2025 for final report
 
 library(tidyverse) #; citation("tidyverse")
 library(readxl) #; citation("readxl")
@@ -18,12 +19,11 @@ library(gridExtra) #; citation("gridExtra")
 # Each species table has the same headings so I just rbind them here and 
 # connect with the dates table with a left_join
 
-#2023 has a new database so I left those relationships alone and load them seperately
+#2023 has a new database so I left those relationships alone and load them separately
 
 
-# Load Carl's functions:
+# Load Carl's function:
 source("SimplePetersen.R")
-
 
 ### Load Witset Data ####
 
@@ -31,7 +31,8 @@ source("SimplePetersen.R")
 
 nms <- names(read_excel("Tag_Data_Sockeye.xlsx", n_max = 0))
 ct <- ifelse(grepl("^AppliedColor2", nms), "text", 
-             ifelse(grepl("^AppliedTagNumber2", nms), "numeric","guess"))
+             ifelse(grepl("^AppliedTagNumber2", nms), 
+                    "numeric","guess"))
 
 
 witset.raw.upto22 <- rbind(read_excel("Tag_Data_Sockeye.xlsx",
@@ -73,19 +74,21 @@ samplingeffort <- rbind(samplingeffort22,samplingeffort23) %>%
   mutate(end_time = ymd_hms(paste(substr(Sample_Date, 1,10),substr(end_time, 12,19)))) %>% 
   mutate(duration.hrs = difftime(end_time,start_time,units = "hours"))
 
-witset.raw.upto24 <- rbind(read_excel("Tag_Data_Sockeye2024.xlsx",
-                                      .name_repair="universal",col_types = ct),
-                           read_excel("Tag_Data_Coho2024.xlsx",
-                                      .name_repair="universal",col_types = ct)) %>% 
-  left_join(read_excel("Tag_Data_Sample_Dates2024.xlsx",.name_repair="universal"), 
-            by="Sample_Id") %>% 
-  filter(sample_year %in% 2024)
+
+#exclude until get raw data:
+# witset.raw.upto24 <- rbind(read_excel("Tag_Data_Sockeye2024.xlsx",
+#                                       .name_repair="universal",col_types = ct),
+#                            read_excel("Tag_Data_Coho2024.xlsx",
+#                                       .name_repair="universal",col_types = ct)) %>% 
+#   left_join(read_excel("Tag_Data_Sample_Dates2024.xlsx",.name_repair="universal"), 
+#             by="Sample_Id") %>% 
+#   filter(sample_year %in% 2024)
   
 
 
 
 
-witset.raw <- rbind(witset.raw.upto22, witset.raw.upto23, witset.raw.upto24)
+witset.raw <- rbind(witset.raw.upto22, witset.raw.upto23) #only include up to 2023
 
 str(witset.raw)
 unique(witset.raw$Sample_Date)
@@ -115,10 +118,7 @@ rm(list = c("samplingeffort22","samplingeffort23", "ct","nms",
 
 #### Years select ####
 
-yr.select <- 2019:2024
-
-
-
+yr.select <- 2018:2023 #keep to these years for final report review
 
 
 #### CPUE Seine ####
@@ -126,7 +126,7 @@ yr.select <- 2019:2024
 str(samplingeffort)
 
 effort.camp.byday <- samplingeffort %>% 
-  filter(sample_year %in% yr.select) %>% 
+  #filter(sample_year %in% yr.select) %>% 
   group_by(Sample_Date,sample_year, Location_Code) %>% 
   summarize(num.sets = length(set_num), 
             total.set.time = sum(duration.hrs, na.rm=T),
@@ -135,21 +135,21 @@ effort.camp.byday <- samplingeffort %>%
             tot.CH = sum(chinook_cnt),tot.ST = sum(steelhead_cnt),
             CPUEbyset.SK = tot.SK/num.sets,
             CPUEbyset.CO = tot.CO/num.sets,
-            CPUEbytime.SK = tot.SK/as.numeric(total.set.time),
-            CPUEbytime.CO = tot.CO/as.numeric(total.set.time)) %>% 
+            CPUEbyhr.SK = tot.SK/as.numeric(total.set.time),
+            CPUEbyhr.CO = tot.CO/as.numeric(total.set.time)) %>% 
   filter(!is.na(mn.time.per.set))
 
-# ggplot(effort.camp.byday)+
-#   geom_line(aes(x=yday(Sample_Date),y=CPUEbyset.SK), col="black")+
-#   geom_line(aes(x=yday(Sample_Date),y=CPUEbytime.SK),col="red")+
-#   facet_wrap(~sample_year)+
-#   labs(x="julian day", y="CPUE", title="SK")
-# 
-# ggplot(effort.camp.byday)+
-#   geom_line(aes(x=yday(Sample_Date),y=CPUEbyset.CO), col="black")+
-#   geom_line(aes(x=yday(Sample_Date),y=CPUEbytime.CO),col="green")+
-#   facet_wrap(~sample_year)+
-#   labs(x="julian day", y="CPUE", title="CO")
+ggplot(effort.camp.byday)+
+  geom_line(aes(x=yday(Sample_Date),y=CPUEbyset.SK), col="black")+
+  geom_line(aes(x=yday(Sample_Date),y=CPUEbyhr.SK),col="red")+
+  facet_wrap(~sample_year)+
+  labs(x="julian day", y="CPUE", title="SK")
+
+ggplot(effort.camp.byday)+
+  geom_line(aes(x=yday(Sample_Date),y=CPUEbyset.CO), col="black")+
+  geom_line(aes(x=yday(Sample_Date),y=CPUEbyhr.CO),col="blue")+
+  facet_wrap(~sample_year)+
+  labs(x="julian day", y="CPUE", title="CO")
 
 effort.camp.byyr <- effort.camp.byday%>% 
   group_by(sample_year, Location_Code) %>% 
@@ -162,11 +162,11 @@ effort.camp.byyr <- effort.camp.byday%>%
             CPUEbytime.SK = mean(CPUEbytime.SK, na.rm=T),CPUEbytime.CO = mean(CPUEbytime.CO, na.rm=T))
 effort.camp.byyr
 
-# ggplot(effort.camp.byyr)+
-#   geom_line(aes(x=sample_year,y=CPUEbyset.SK), col="black")+
-#   geom_line(aes(x=sample_year,y=CPUEbytime.SK), col="red")+
-#   geom_line(aes(x=sample_year,y=CPUEbyset.CO), col="blue")+
-#   geom_line(aes(x=sample_year,y=CPUEbytime.CO), col="purple")
+ggplot(effort.camp.byyr)+
+  geom_line(aes(x=sample_year,y=CPUEbyset.SK), col="black")+
+  geom_line(aes(x=sample_year,y=CPUEbytime.SK), col="red")+
+  geom_line(aes(x=sample_year,y=CPUEbyset.CO), col="blue")+
+  geom_line(aes(x=sample_year,y=CPUEbytime.CO), col="purple")
 
 
 
@@ -187,6 +187,7 @@ fishermen %>%
 ggplot(fishermen)+
   geom_bar(aes(x=yday(Sample_Date), y=num.fisher), stat="identity")+
   facet_wrap(~year)
+#looks pretty constant so not that helpful for effort
 
 
 #### General Info ####
@@ -222,8 +223,8 @@ tag.table.summary <- witset %>%
             taggedCO = length(which(Species %in% "CO")),
             taggedCH = length(which(Species %in% "CH")),
             taggedST = length(which(Species %in% "ST"))) 
-tag.table.summary %>% 
-  write_csv("tag.table.summary.csv")
+# tag.table.summary %>% 
+#   write_csv("tag.table.summary.csv")
 
 # Note that these numbers do not match up with the Seine effort tallies. Compare diffs
 
@@ -285,7 +286,7 @@ table.tagstatus
 
 
 
-yr.select.QA <- 2024
+yr.select.QA <- 2018
 
 
 #species records missing dates:
@@ -375,10 +376,13 @@ xtabs(~Species+AppliedCaudalPunch+year, data=witset[is.na(witset$TagStatus),], e
 # look for and correct duplicate new tags within each species:
 tmp <- witset %>% 
   filter(!is.na(new.tag), year %in% yr.select.QA) %>% 
-  mutate(tag.sp.year = paste0(new.tag,Species,year))
+  mutate(tag.sp.year = paste0(new.tag,Species,year)) %>% 
+  filter(Species %in% "CO")
 (tmp2 <- tmp[duplicated(tmp$tag.sp.year),] %>% 
   select(Sample_Date, Location_Code, Species, Counter, new.tag) %>% 
   arrange(Location_Code,Sample_Date))
+#2018 SK: did not do
+#2018 CO: could not fix g-65567 and 65556
 #2020 SK: y-92871:y-92875 cannot be fixed
 #2020 CO: B-1159 and G-62323 to G-62327 not fixable 
 #2021 SK: y-4901 duplicate not fixable, the rest fixed
@@ -406,12 +410,14 @@ witset %>%
   select(Sample_Date,Location_Code,Counter, Species, TagStatus,AppliedColor,
          AppliedTagNumber)
 
+#none in 2018
 # about 7 entries total > 2018. Reduced to 2
 # 1 more in 2023
 
 
 
-#difference between those with tag status R and AR vs a number in RecapTagNumber
+#difference between those with tag status R and AR vs 
+# a number in RecapTagNumber and Color
 witset %>% 
   filter(year %in% yr.select.QA, Species %in% c("CO","SK")) %>% 
   filter(TagStatus %in% c("R","AR")) %>% 
@@ -433,7 +439,6 @@ witset %>%
   select(Sample_Date,Location_Code,Counter, Species, TagStatus,Recaptured.Color,
          Recaptured.number)
 # 10 fish where the tag number was not recorded but there is a tag colour.Fixed 5
-# For these we could generate likely tags...?
 # about 62 entries total, fixed some so now 46. 
 # Legitimate to forget these though and just go with number,
 # since most of them were batch-marked only when they should not have been and recorded
@@ -481,6 +486,7 @@ tot.recap.orphans
   select(Sample_Date, Location_Code, Species, Counter, recap.tag, Sex, ForkLength) %>% 
   arrange(Species, Location_Code, Sample_Date))
 
+# 2018: unsolved orphans 59193,48052,
 #there are 14 unresolvable recaps without tag applied in 2020
 #there are 15 recaptures without a matching tag number in 2021
 #canyon data not entered for SK on July 19th 2021- DONE
@@ -514,6 +520,7 @@ witset %>%
   group_by(year, Species) %>% 
   summarize(no.applied.tag = length(Species)))
 
+# 2 tags with no number in 2018
 # 1 tag with no number, just a colour in 2020
 #160 tags with no number, just a colour in 2021
 # 4 tags with no number in 2022, could only fix 2
@@ -537,6 +544,7 @@ witset %>%
 witset %>% 
   filter(!is.na(Recaptured.number),is.na(Recaptured.Color), year %in% yr.select.QA,Species %in% c("CO","SK")) %>% 
   select(year ,Sample_Date, Species, Counter, recap.tag)
+#none in 2018
 #none in 2020
 #none in 2021
 #none in 2022
@@ -551,7 +559,7 @@ witset %>%
 
 no.tag.number <- witset %>% 
     filter(year %in% yr.select) %>% 
-    filter(Species %in% c("CO","SK")) %>% 
+    filter(Species %in% c("CO")) %>% 
     mutate(bad.tagstatus.applied = ifelse(TagStatus %in% c("A","A2","AR")&
            is.na(AppliedTagNumber)&is.na(AppliedColor), "bad",NA)) %>% 
     mutate(bad.tagstatus.recap = ifelse(TagStatus %in% c("R","AR")&
@@ -561,6 +569,7 @@ no.tag.number <- witset %>%
     select(year,Sample_Date, Counter,Species,TagStatus,
            bad.tagstatus.applied,bad.tagstatus.recap,
            bad.tagstatus.harvest) %>% 
+  filter(!is.na(bad.tagstatus.recap))
     group_by(year, Species) %>% 
     summarize(bad.tagstatus.applied=length(which(!is.na(bad.tagstatus.applied))),
               bad.tagstatus.recap=length(which(!is.na(bad.tagstatus.recap))),
