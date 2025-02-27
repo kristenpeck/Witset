@@ -31,7 +31,7 @@ source("SimplePetersen.R")
 
 #from db v3: 2012 to 2022
 
-nms <- names(read_excel("Tag_Data_Coho.xlsx", n_max = 0))
+nms <- names(read_excel("./data/Tag_Data_Coho.xlsx", n_max = 0))
 ct <- ifelse(grepl("^AppliedColor2", nms)|grepl("^Recaptured.Color2", nms), "text", 
              ifelse(grepl("^AppliedTagNumber2", nms)|grepl("^Recaptured.number2", nms), 
                     "numeric","guess"))
@@ -54,6 +54,7 @@ witset.raw.upto22 <- rbind(read_excel("Tag_Data_Sockeye.xlsx",
 samplingeffort22 <- read_excel("Sampling_effort.xlsx",.name_repair="universal") %>% 
   left_join(read_excel("Tag_Data_Sample_Dates.xlsx",.name_repair="universal"), 
             by=c("sample_ID"="Sample_Id"))
+
 
 
 # from db v3: 2023 
@@ -103,12 +104,11 @@ samplingeffort <- rbind(samplingeffort22,samplingeffort23, samplingeffort24) %>%
 
 witset.raw <- rbind(witset.raw.upto22, witset.raw.upto23, witset.raw.upto24) 
 
-str(witset.raw)
-unique(witset.raw$Sample_Date)
 
 #clean up and pair down dataset
 
 witset <- witset.raw %>% 
+  mutate(Sample_Date = as_date(Sample_Date)) %>% 
   mutate(tag.col=recode(AppliedColor,Orange="o",yellow="y",White="w",
                         Yellow="y",Green="g",`Light Green`="g",
                         `Light Orange`="lt.o",Pink="p",`Lime Green`="g",
@@ -123,15 +123,29 @@ witset <- witset.raw %>%
   mutate(recap.tag = ifelse(is.na(recap.col)&is.na(Recaptured.number),NA,
                             paste0(recap.col,"-",Recaptured.number))) %>% 
   mutate(tag.yr.sp = ifelse(!is.na(AppliedTagNumber), paste0(AppliedTagNumber,".",year,Species),
-                            ifelse(!is.na(Recaptured.number),paste0(Recaptured.number,".",year,Species),NA)))
-#Note that applied tag is in tag.yr.sp, not recap tag
+                            ifelse(!is.na(Recaptured.number),paste0(Recaptured.number,".",year,Species),NA))) %>% 
+  #the following from Carl's script:
+  mutate(AppliedTagNumberPresent = !is.na(AppliedTagNumber), #uses only those fish with tag number
+       RecapturedTagNumberPresent=!is.na(Recaptured.number)) %>% 
+  mutate(VentralClip = NULL, AdiposeClip = NULL) %>% 
+  mutate(Year.Species = paste0(year,".",Species)) %>% 
+  mutate(AppliedColor = tolower(AppliedColor),
+         RecapturedColor = tolower(Recaptured.Color)) %>% 
+  mutate(myTagColor = RecapturedColor, 
+         myTagNumber = Recaptured.number) %>% #starts with recap # in this spot so if there is an applied tag it will overwrite
+  mutate(myTagColor = ifelse(!is.na(AppliedColor),AppliedColor,myTagColor)) %>% 
+  mutate(myTagNumber = ifelse(!is.na(AppliedColor),AppliedTagNumber,myTagNumber)) %>% 
+  mutate(ISOweek = isoweek(Sample_Date)) %>% 
+  mutate(SYT = paste(Species, year, myTagNumber, sep=".")) 
+#Note that applied tag is in tag.yr.sp, not recap tag in cases of AR
+
 
 rm(list = c("samplingeffort22","samplingeffort23","samplingeffort24", "ct","nms",
             "witset.raw.upto22", "witset.raw.upto23", "witset.raw.upto24"))
 
 #### Years select ####
 
-yr.select <- 2018:2024 
+yr.select <- 2018:2024 # will change this to c(2015:2016, 2018:2024) once DB goes thru 2015,2016 data
 
 
 #### CPUE Seine ####
@@ -155,23 +169,23 @@ effort.camp.byday <- samplingeffort %>%
             CPUEbyhr.PK = tot.PK/as.numeric(total.set.time)) %>% 
   filter(!is.na(mn.time.per.set))
 
-ggplot(effort.camp.byday)+
-  geom_line(aes(x=yday(Sample_Date),y=CPUEbyset.SK), col="black")+
-  geom_line(aes(x=yday(Sample_Date),y=CPUEbyhr.SK),col="red")+
-  facet_wrap(~sample_year)+
-  labs(x="julian day", y="CPUE", title="SK")
-
-ggplot(effort.camp.byday)+
-  geom_line(aes(x=yday(Sample_Date),y=CPUEbyset.CO), col="black")+
-  geom_line(aes(x=yday(Sample_Date),y=CPUEbyhr.CO),col="blue")+
-  facet_wrap(~sample_year)+
-  labs(x="julian day", y="CPUE", title="CO")
-
-ggplot(effort.camp.byday)+
-  geom_line(aes(x=yday(Sample_Date),y=CPUEbyset.PK), col="black")+
-  geom_line(aes(x=yday(Sample_Date),y=CPUEbyhr.PK),col="blue")+
-  facet_wrap(~sample_year)+
-  labs(x="julian day", y="CPUE", title="PK")
+# ggplot(effort.camp.byday)+
+#   geom_line(aes(x=yday(Sample_Date),y=CPUEbyset.SK), col="black")+
+#   geom_line(aes(x=yday(Sample_Date),y=CPUEbyhr.SK),col="red")+
+#   facet_wrap(~sample_year)+
+#   labs(x="julian day", y="CPUE", title="SK")
+# 
+# ggplot(effort.camp.byday)+
+#   geom_line(aes(x=yday(Sample_Date),y=CPUEbyset.CO), col="black")+
+#   geom_line(aes(x=yday(Sample_Date),y=CPUEbyhr.CO),col="blue")+
+#   facet_wrap(~sample_year)+
+#   labs(x="julian day", y="CPUE", title="CO")
+# 
+# ggplot(effort.camp.byday)+
+#   geom_line(aes(x=yday(Sample_Date),y=CPUEbyset.PK), col="black")+
+#   geom_line(aes(x=yday(Sample_Date),y=CPUEbyhr.PK),col="blue")+
+#   facet_wrap(~sample_year)+
+#   labs(x="julian day", y="CPUE", title="PK")
 
 
 effort.camp.byyr <- effort.camp.byday%>% 
@@ -187,15 +201,15 @@ effort.camp.byyr <- effort.camp.byday%>%
             CPUEbyhr.SK = mean(CPUEbyhr.SK, na.rm=T),CPUEbyhr.CO = mean(CPUEbyhr.CO, na.rm=T))
 effort.camp.byyr
 
-ggplot(effort.camp.byyr)+
-  geom_line(aes(x=sample_year,y=CPUEbyset.SK), col="black")+
-  geom_line(aes(x=sample_year,y=CPUEbyhr.SK), col="red")+
-  geom_line(aes(x=sample_year,y=CPUEbyset.CO), col="blue")+
-  geom_line(aes(x=sample_year,y=CPUEbyhr.CO), col="purple")+
-  labs(y="CPUE", title = "CO by set (blue), CO by hr (purple),
-       SK by set (black), SK by hr (red)")+
-  scale_x_continuous(breaks=seq(min(effort.camp.byyr$sample_year),
-                                max(effort.camp.byyr$sample_year),1))
+# ggplot(effort.camp.byyr)+
+#   geom_line(aes(x=sample_year,y=CPUEbyset.SK), col="black")+
+#   geom_line(aes(x=sample_year,y=CPUEbyhr.SK), col="red")+
+#   geom_line(aes(x=sample_year,y=CPUEbyset.CO), col="blue")+
+#   geom_line(aes(x=sample_year,y=CPUEbyhr.CO), col="purple")+
+#   labs(y="CPUE", title = "CO by set (blue), CO by hr (purple),
+#        SK by set (black), SK by hr (red)")+
+#   scale_x_continuous(breaks=seq(min(effort.camp.byyr$sample_year),
+#                                 max(effort.camp.byyr$sample_year),1))
 
 
 
@@ -213,9 +227,9 @@ fishermen %>%
   group_by(year) %>% 
   summarize(ave.num.fisher = mean(num.fisher))
 
-ggplot(fishermen)+
-  geom_bar(aes(x=yday(Sample_Date), y=num.fisher), stat="identity")+
-  facet_wrap(~year)
+# ggplot(fishermen)+
+#   geom_bar(aes(x=yday(Sample_Date), y=num.fisher), stat="identity")+
+#   facet_wrap(~year)
 #looks pretty constant so not that helpful for effort
 
 
@@ -300,7 +314,7 @@ table.tagstatus <- witset %>%
             tot.AR = length(which(TagStatus %in% "AR")),
             tot.R = length(which(TagStatus %in% "R")),
             tot.NA = length(which(TagStatus %in% "NA")),
-            tot.NA2 = length(which(is.na(TagStatus))),
+            #tot.NA2 = length(which(is.na(TagStatus))),
             tot.Harvested = length(which(Harvested %in% T)))
 table.tagstatus
 
@@ -324,80 +338,80 @@ witset.raw %>%
   filter(is.na(Sample_Date), sample_year %in% yr.select.QA)
 # fixed orphan records
 
-# look for weird tag colours 
-unique(witset.raw$AppliedColor)
-unique(witset.raw$Recaptured.Color) #fixed some of the really weird coho records
-print.data.frame(witset.raw[which(witset.raw$Recaptured.Color %in% "yellow"),c("Sample_Date","Location_Code",
-                                                              "Species","Sex",
-                                                              "Recaptured.number")])
-
+# # look for weird tag colours 
+# unique(witset.raw$AppliedColor)
+# unique(witset.raw$Recaptured.Color) #fixed some of the really weird coho records
+# print.data.frame(witset.raw[which(witset.raw$Recaptured.Color %in% "Blue"),c("Sample_Date","Location_Code",
+#                                                               "Species","Sex",
+#                                                               "Recaptured.number")])
+# 
 #from Carl
 
-#any missing year
-xtabs(~Sample_Id+Species, data=witset[ is.na(witset$year),], exclude=NULL, na.action=na.pass)
+# #any missing year
+# xtabs(~Sample_Id+Species, data=witset[ is.na(witset$year),], exclude=NULL, na.action=na.pass)
+# 
+# xtabs(~year+TagStatus, data=witset[witset$Species=="CH",], exclude=NULL, na.action=na.pass)
+# 
+# # location of application or capture- should be "Campground" or "Canyon"
+# xtabs(~Species+Location_Code, data=witset, exclude=NULL, na.action=na.pass)
+# 
+# # tag status - should be A, A2, AR, NA, R
+# xtabs(~Species+TagStatus, data=witset, exclude=NULL, na.action=na.pass)
+# 
+# # year
+# xtabs(~Species+year, data=witset, exclude=NULL, na.action=na.pass)
+# 
+# xtabs(~TagStatus+year+Species, data=witset, exclude=NULL, na.action=na.pass)
+# 
+# xtabs(~TagStatus+Location_Code, data=witset, exclude=NULL, na.action=na.pass)
+# xtabs(~TagStatus+AppliedCaudalPunch+Species, data=witset, exclude=NULL, na.action=na.pass)
+# 
+# xtabs(~AppliedCaudalPunch+year+Species, data=witset, exclude=NULL, na.action=na.pass)
+# 
+# xtabs(~AppliedCaudalPunch+year, data=witset, exclude=NULL, na.action=na.pass)
+# 
+# # Look like RemovedColor and RemovedTagNumber are never used
+# xtabs(~RemovedTagNumber, data=witset, exclude=NULL, na.action=na.pass)
+# xtabs(~RemovedTagColor,  data=witset, exclude=NULL, na.action=na.pass)
+# witset$RemovedTagNumber <- NULL
+# witset$RemovedTagColor  <- NULL
+# 
+# # check the double tagged fish.
+# select <- witset$TagStatus=="A2"
+# sum(select)
+# temp <- witset[select, c("year","Sample_Date","Location_Code","Species","TagStatus","AppliedColor","AppliedTagNumber","AppliedTagNumber2","Recaptured.Color","Recaptured.number","Comments.x")]
+# temp <- temp[ order(temp$Species, temp$Sample_Date),]
+# temp
+# 
+# # check for applied and recapture number field both non-NA
+# xtabs(~is.na(AppliedTagNumber)+is.na(Recaptured.number), data=witset, exclude=NULL, na.action=na.pass)
+# # Lots of records with AppliedTagNumber and RecapturedTagNumber are both NA - these must be captures of 
+# # fish that are not tagged.
+# # A few records where both fields are given
+# select <- !is.na(witset$AppliedTagNumber) & !is.na(witset$Recaptured.number)
+# sum(select)
+# (temp <- witset[select,])
+# #write.csv(temp, file="both-applied-recap-numbers.csv", row.names=FALSE)
+# 
+# 
+# ## Tag status of NA is typically missing because fish is harvested but not always
+# ## If not harvested, with a tag status of NA and a tag number present, we change to NA
+# witset$TagStatus[ witset$TagStatus == "NA"] <- NA
+# xtabs(~TagStatus + Harvested, data=witset, exclude=NULL, na.action=na.pass)
 
-xtabs(~year+TagStatus, data=witset[witset$Species=="CH",], exclude=NULL, na.action=na.pass)
 
-# location of application or capture- should be "Campground" or "Canyon"
-xtabs(~Species+Location_Code, data=witset, exclude=NULL, na.action=na.pass)
+# ## sometimes tag status is missing (or set to NA), not harvested, and a tag number recorded
+# ## e.g. ST 58023
+# select <- is.na(witset$TagStatus) & !witset$Harvested & !is.na(witset$AppliedTagNumber)
+# sum(select)
+# temp <- witset[select, c("year","Sample_Date","Location_Code","Species","TagStatus","AppliedColor","AppliedTagNumber","Recaptured.Color","Recaptured.number","Comments.x")]
+# witset$TagStatus[select]<- "A"
+# witset$QA_Comments.x[select ] <- paste0(witset$QA_Comments.x[select], ";Changed tag status to A")
 
-# tag status - should be A, A2, AR, NA, R
-xtabs(~Species+TagStatus, data=witset, exclude=NULL, na.action=na.pass)
-
-# year
-xtabs(~Species+year, data=witset, exclude=NULL, na.action=na.pass)
-
-xtabs(~TagStatus+year+Species, data=witset, exclude=NULL, na.action=na.pass)
-
-xtabs(~TagStatus+Location_Code, data=witset, exclude=NULL, na.action=na.pass)
-xtabs(~TagStatus+AppliedCaudalPunch+Species, data=witset, exclude=NULL, na.action=na.pass)
-
-xtabs(~AppliedCaudalPunch+year+Species, data=witset, exclude=NULL, na.action=na.pass)
-
-xtabs(~AppliedCaudalPunch+year, data=witset, exclude=NULL, na.action=na.pass)
-
-# Look like RemovedColor and RemovedTagNumber are never used
-xtabs(~RemovedTagNumber, data=witset, exclude=NULL, na.action=na.pass)
-xtabs(~RemovedTagColor,  data=witset, exclude=NULL, na.action=na.pass)
-witset$RemovedTagNumber <- NULL
-witset$RemovedTagColor  <- NULL
-
-# check the double tagged fish.
-select <- witset$TagStatus=="A2"
-sum(select)
-temp <- witset[select, c("year","Sample_Date","Location_Code","Species","TagStatus","AppliedColor","AppliedTagNumber","AppliedTagNumber2","Recaptured.Color","Recaptured.number","Comments.x")]
-temp <- temp[ order(temp$Species, temp$Sample_Date),]
-temp
-
-# check for applied and recapture number field both non-NA
-xtabs(~is.na(AppliedTagNumber)+is.na(Recaptured.number), data=witset, exclude=NULL, na.action=na.pass)
-# Lots of records with AppliedTagNumber and RecapturedTagNumber are both NA - these must be captures of 
-# fish that are not tagged.
-# A few records where both fields are given
-select <- !is.na(witset$AppliedTagNumber) & !is.na(witset$Recaptured.number)
-sum(select)
-(temp <- witset[select,])
-#write.csv(temp, file="both-applied-recap-numbers.csv", row.names=FALSE)
-
-
-## Tag status of NA is typically missing because fish is harvested but not always
-## If not harvested, with a tag status of NA and a tag number present, we change to NA
-witset$TagStatus[ witset$TagStatus == "NA"] <- NA
-xtabs(~TagStatus + Harvested, data=witset, exclude=NULL, na.action=na.pass)
-
-
-## sometimes tag status is missing (or set to NA), not harvested, and a tag number recorded
-## e.g. ST 58023
-select <- is.na(witset$TagStatus) & !witset$Harvested & !is.na(witset$AppliedTagNumber)
-sum(select)
-temp <- witset[select, c("year","Sample_Date","Location_Code","Species","TagStatus","AppliedColor","AppliedTagNumber","Recaptured.Color","Recaptured.number","Comments.x")]
-witset$TagStatus[select]<- "A"
-witset$QA_Comments.x[select ] <- paste0(witset$QA_Comments.x[select], ";Changed tag status to A")
-
-## CH uses punches to record marking information
-xtabs(~Species+AppliedCaudalPunch, data=witset, exclude=NULL, na.action=na.pass)
-xtabs(~TagStatus+AppliedCaudalPunch, data=witset, exclude=NULL, na.action=na.pass)
-xtabs(~Species+AppliedCaudalPunch+year, data=witset[is.na(witset$TagStatus),], exclude=NULL, na.action=na.pass)
+# ## CH uses punches to record marking information
+# xtabs(~Species+AppliedCaudalPunch, data=witset, exclude=NULL, na.action=na.pass)
+# xtabs(~TagStatus+AppliedCaudalPunch, data=witset, exclude=NULL, na.action=na.pass)
+# xtabs(~Species+AppliedCaudalPunch+year, data=witset[is.na(witset$TagStatus),], exclude=NULL, na.action=na.pass)
 
 
 
@@ -406,7 +420,7 @@ xtabs(~Species+AppliedCaudalPunch+year, data=witset[is.na(witset$TagStatus),], e
 tmp <- witset %>% 
   filter(!is.na(new.tag), year %in% yr.select.QA) %>% 
   mutate(tag.sp.year = paste0(new.tag,Species,year)) %>% 
-  filter(Species %in% "CO")
+  filter(Species %in% c("CO","SK"))
 (tmp2 <- tmp[duplicated(tmp$tag.sp.year),] %>% 
   select(Sample_Date, Location_Code, Species, Counter, new.tag) %>% 
   arrange(Location_Code,Sample_Date))
@@ -419,7 +433,7 @@ tmp <- witset %>%
 #2021 CO: B-53760 duplicate not fixable, the rest fixed
 #2022: were 19 dupes, resolved most except two CO with missing tag number
 #2023: were 95 dupes, 9 CO not easily resolved: B-7032,7305,7274,7281*,7898,8119,8251,52747,52751 
-#2024: did not do, need raw data
+#2024: were 32 dupes, 2 SK not easily resolved
 
 
 #tool for searching tag #s 
@@ -445,7 +459,7 @@ witset %>%
 #none in 2018, 2019
 # about 7 entries total > 2018. Reduced to 2
 # 1 more in 2023
-
+# 3 in 2024 - fixed
 
 
 #difference between those with tag status R and AR vs 
@@ -479,6 +493,7 @@ witset %>%
 # the methods though... In future, can use this R rate for tag loss rate, 
 # and just use the recap tag number for the MR analysis
 # in 2023 there was one SK missing tag number with tag color
+# in 2024 they have many recap tag col missing, one not quickly resolvable 
 
 
 
@@ -491,7 +506,7 @@ uniq.applied.tag <- witset %>%
   mutate(TagStatus = "A")
 
 uniq.recap.tag <- witset %>% 
-  filter(year %in% yr.select) %>% 
+  filter(year %in% yr.select.QA) %>% 
   filter(!is.na(tag.yr.sp) & TagStatus %in% c("R")) %>% 
   group_by(year, Species) %>% 
   reframe(uniq.tag = unique(tag.yr.sp)) %>% 
@@ -503,7 +518,7 @@ uniq.recap.tag
 
 #total orphan tags:
 tot.recap.orphans <- uniq.recap.tag %>% 
-  filter(Species %in% c("CO","SK")) %>% 
+  filter(Species %in% c("CO", "SK")) %>% 
   group_by(year, Species) %>% 
   summarize(orphan.recaps = length(Species))
 tot.recap.orphans
@@ -535,16 +550,20 @@ tot.recap.orphans
 #2023 SK: 4198, 9205 unresolvable,530,4528,4765,4040,4173,4194,4166
 #2023 CO: 2164,6562,5446,4409,4468,4457,44100,4497,62228,3423,2354,424,3919
 
+#2024 CO: 6 tags not resolvable, 4 from likely missing pages
+#2024 SK: 4 tags not resolvable, 1 likely from missing page.
 
 
 #how many new tag numbers with no colour?
 witset %>% 
-  filter(!is.na(AppliedTagNumber),is.na(AppliedColor), year %in% yr.select,Species %in% c("CO","SK")) %>% 
+  filter(!is.na(AppliedTagNumber),is.na(AppliedColor), year %in% yr.select.QA,
+         Species %in% c("CO","SK")) %>% 
   select(Sample_Date, Counter, new.tag, Species, Location_Code)
 # 1 tag with no colour, just a number in 2020 - unfixable
 #77 missing colour of tag, just 1 in 2021-fixed, 
 #had three (2 CO, 1ST)-all fixed. Just 5 between CH and ST
 # 2023 none
+# 2024 none
 
 #how many new tag colours with no tag number?
 (missing.applied.tagnum <- witset %>% 
@@ -558,7 +577,7 @@ witset %>%
 #160 tags with no number, just a colour in 2021
 # 4 tags with no number in 2022, could only fix 2
 # 3 tags with no number in 2023, could fix 2, 1 SK remaining
-
+# 5 SK tags in 2024 all fixed
 
 #how many recap tag colours with no tag number?
 (missing.recap.tagnum <- witset %>% 
@@ -572,6 +591,7 @@ witset %>%
 # 3 in 2021, all b/c recap tag number doesn't exist
 # 1 in 2022, unfixable
 # 6 in 2023, fixed 4, 2 remaining
+# 1 SK in 2024, fixed
 
 #how many recap tag numbers with no colour?
 witset %>% 
@@ -583,7 +603,7 @@ witset %>%
 #none in 2021
 #none in 2022
 #5 CO in 2023. I could add blue here but the tag numbers don't make sense either
-
+# 13 in 2024, all but one fixed
 
 
 #Check if the tag status is recorded incorrectly:
@@ -615,6 +635,7 @@ no.tag.number
 #2023 some of these unresolved for SK - one a fumble fish, another a tag loss that wasn't retagged
 #   CO - 3 lost tags, 2 re-applied (ARs) and 1 not
 #2019 last 5 not resolveable
+#2024 
 
 
 
@@ -854,7 +875,8 @@ SKbylocation <- witset %>%
   group_by(Location_Code, year) %>% 
   summarize(totalcaught = length(Location_Code), 
             harvested=length(which(Harvested %in% TRUE)),
-            released= length(which(TagStatus %in% c("A")))) 
+            released.w.tag= length(which(TagStatus %in% c("A"))),
+            recapped= length(which(TagStatus %in% c("AR","R")))) 
 SKbylocation
 
 
@@ -936,7 +958,8 @@ LP <- m %>%
   mutate(Chap = NChapman(marked,total.catch,recapped)) %>% 
   mutate(vChap = vChapman(marked,total.catch,recapped)) %>% 
   mutate(seChap = seChapman(marked,total.catch,recapped)) %>% 
-  mutate(CI95Chap = seChap*1.965)
+  mutate(CI95Chap = seChap*1.965) %>% 
+  mutate(Chap = ifelse(recapped >= 20, Chap, NA)) #only include those years with a reasonable number of raps
 LP
 #write_csv(LP, file = "Chapman.estSK2012-2022.csv")
 
@@ -962,7 +985,7 @@ totalcaughtSK <- SKbylocation %>%
   group_by(year) %>% 
   summarize(totalcaught = sum(totalcaught),
             totalharvested = sum(harvested),
-            totalreleased = sum(released)) %>% 
+            totalreleased = sum(released.w.tag)) %>% 
   filter(year %in% yr.select)
 
 plot.SK.daily <- ggplot(witsetSKrecent)+
@@ -972,7 +995,7 @@ plot.SK.daily <- ggplot(witsetSKrecent)+
                                                    totalcaught)))+
   scale_x_date(date_breaks = "2 weeks", date_labels = "%b-%d")+
   facet_wrap(~year)+
-  labs(title = "Daily catch of sockeye Campground+Canyon (2018-2023)", y="daily catch of sockeye",
+  labs(title = "Daily catch of sockeye Campground+Canyon (2018-2024)", y="daily catch of sockeye",
        x="date")+
   theme(axis.text.x = element_text(angle=45, hjust=1))
 plot.SK.daily
@@ -1056,19 +1079,22 @@ plot.CO.daily
 
 #### Toboggan data ####
 
-# Quick LP estimate
 
-nms <- names(read_excel("TobogganFenceData_MASTER-copy7-Feb-2025.xlsx", 
+
+nms <- names(read_excel("TobogganFenceData_MASTER-copy26-Feb-2025.xlsx", 
                         sheet = "IndividualFish",n_max = 0))
-ct <- ifelse(grepl("^poh_length_mm", nms)|grepl("^total", nms), "numeric",
-             ifelse(grepl("^recap_caudal_punch",nms),"text","guess"))
+ct <- ifelse(grepl("^poh_length_mm", nms)|grepl("^total", nms)|grepl("^recap_tag_number", nms), "numeric",
+             ifelse(grepl("^recap_caudal_punch",nms),"text",
+                    ifelse(grepl("^fumble_fish",nms),"logical","guess")))
 
 
-tobog <- read_excel("TobogganFenceData_MASTER-copy7-Feb-2025_2.xlsx",
+tobog.raw <- read_excel("TobogganFenceData_MASTER-copy26-Feb-2025.xlsx",
                     sheet = "IndividualFish", col_types = ct) %>% 
   filter(species %in% "co") %>% 
-  mutate(date = as_date(date)) %>% 
+  mutate(date = as_date(date), julian = yday(date), 
+         appr.date = as_date(julian, origin = ymd("2025-01-01"))) %>% 
   mutate(species = toupper(species)) %>% 
+  mutate(total = ifelse(is.na(total), 1, total)) %>% #could be corrected in database
   mutate(FL = as.numeric(fork_length_mm)/10) %>% 
   mutate(POH = as.numeric(poh_length_mm)/10) %>% 
   mutate(gender = case_when(mark_gender %in% c("wf","af")~"F",
@@ -1076,13 +1102,31 @@ tobog <- read_excel("TobogganFenceData_MASTER-copy7-Feb-2025_2.xlsx",
   mutate(recap_tag_colour = tolower(recap_tag_colour)) %>% 
   mutate(witset.taglost = ifelse(recap_caudal_punch %in% c("top","bottom","yes")&
                                    (is.na(recap_tag_colour)&is.na(recap_tag_number)),T,F)) %>% #could be added to tobog database as separate field
-  mutate(origin = ifelse(recap_tag_colour %in% c("blue","green"), 1,NA)) %>% 
-  mutate(total = ifelse(is.na(total), 1, total)) %>% #could be corrected in database
   mutate(total.hatchery = ifelse(mark_gender %in% c("af","am","aj"), total,NA)) %>% 
   mutate(total.wild = ifelse(mark_gender %in% c("wf","wm","wj"), total,NA)) %>% 
-  mutate(recap_tag_number = ifelse(origin %in% 1, as.numeric(recap_tag_number),NA)) %>% 
-  filter(recap_tag_colour %in% )
-  
+  #mutate(recap_tag_colour = ifelse(tag_origin_code %in% "drake",NA,recap_tag_colour)) %>% #figured out these were just re-used tags from Drake
+  #mutate(recap_tag_number = ifelse(tag_origin_code %in% "drake",NA,recap_tag_number)) %>% 
+  mutate(remove = ifelse(recap_tag_colour %in% "orange" & year %in% c(2022,2024),T,
+                         ifelse(recap_tag_colour %in% "pink" & year %in% 2020,T,NA))) %>% 
+  filter(is.na(remove))#this last filter to exclude rows of fish that were tagged, flushed and then were recaptured.
+           
+
+
+# What is a recap from toboggan?:
+# added tag colours back to 2015 
+
+tobog.raw %>% 
+  group_by(year) %>% 
+  summarize(total.tag.col = length(which(recap_tag_colour %in% c("blue","green","yellow"))),
+            total.tag.num = length(which(!is.na(recap_tag_number))),
+            total.fumbles = length(which(fumble_fish %in% T))) %>% 
+  mutate(calc.fumbles = total.tag.col - total.tag.num)
+
+tobog <- tobog.raw %>%
+  mutate(origin = ifelse(recap_tag_colour %in% c("blue","green","yellow"), 1,NA)) %>%
+  mutate(recap_tag_number = ifelse(origin %in% 1, as.numeric(recap_tag_number),NA)) %>%
+  filter(recap_tag_colour %in% c("blue","green","yellow",NA))
+
 
 str(tobog)
 
@@ -1095,7 +1139,7 @@ str(tobog.yearly.sum)
 
 #to do: remove orange tag recaptures at the fence, since these had
 # a tag applied and somehow got downstream to come up again. 
-# So they should not be counted again.
+# So they should not be counted again. - DONE
 
 yr.select.QA
 
@@ -1106,11 +1150,11 @@ yr.select.QA
 tobog %>% 
   group_by(year) %>% 
   summarize(total.tbctagsapplied = length(which(!is.na(tob_tag))),
-            recaps.tbctags = length(which(recap_tag_colour %in% c("orange","yellow","pink"))),
-            percent.tbctags.recapped = recaps.tbctags/total.tbctagsapplied*100,
-            recaps.bluegreen = length(which(recap_tag_colour %in% c("blue","green"))),
-            total.nottagged = length(which(recap_tag_colour %in% c(NA))))
-
+            recaps.tbctags = length(which(recap_tag_colour %in% c("orange","pink"))),
+            #percent.tbctags.recapped = recaps.tbctags/total.tbctagsapplied*100,
+            recaps.witset = length(which(!is.na(origin))),
+            total.notrecaps = length(which(recap_tag_colour %in% c(NA))))
+#TBC tag recaps should now be zero
 
 # summary table of catch:
 (table.tobog <- tobog %>% 
@@ -1123,9 +1167,30 @@ tobog %>%
             wild.origin = sum(total.wild, na.rm=T) ))
 
 
+
+
+# daily toboggan catch:
+
+tobog.daily <- tobog %>% 
+  filter(year %in% c(yr.select.QA)) %>% 
+  group_by(year, date, appr.date) %>% 
+  summarize(total.CO = sum(total),
+            total.CO.newtobtag = length(which(!is.na(tob_tag))),
+            total.CO.recaptobtag = length(which(recap_tag_colour %in% "orange"))) %>% #removed above.
+  pivot_longer(cols=!c(year, date, appr.date), 
+               names_to = "tag.status",
+               values_to = "total")
+
+ggplot(tobog.daily)+
+  geom_bar(aes(x=date, y=total, fill=tag.status), stat="identity", position="dodge")+
+  facet_wrap(~year)
+
+
+
 # From CS
 
-#NOTE: need to exclude orange tag recaps in 2024
+
+unique(tobog$recap_tag_colour)
 
 t.data <- plyr::rename(tobog, c("year"="year",
                                  "date"="date",
@@ -1134,9 +1199,9 @@ t.data <- plyr::rename(tobog, c("year"="year",
   filter(year %in% yr.select)
 
 t.tagrecoveries <- t.data %>% 
-  filter(!is.na(RecapturedTagNumber),
+  filter(!is.na(RecapturedTagNumber), #in this method, only those fish with tag numbers are recaps, excludes fumble fish
          Species %in% c("CO"),
-         origin %in% 1) %>% #this field not filled out for every year yet?
+         origin %in% 1) %>% 
   select(date,year,Species,RecapturedTagNumber)
 
 xtabs(~Species+year, data=t.tagrecoveries, 
@@ -1153,22 +1218,25 @@ t.markedunmarked <- plyr::ddply(t.markedunmarked.fish, c("date","year","Species"
                                     total.marked=sum(!is.na(RecapturedTagNumber))) #total # of recovered tags in a day (excludes tag losses, or col only)
 
 #### tag loss ####
-#in 2023 - was more explicitly part of protocol
+#as of 2023 was more explicitly part of protocol for a subset of fish
 
-
-tag.loss202324 <- tobog %>% 
-  filter(year %in% 2023:2024) %>% 
-  group_by(year) %>% 
-  summarize(num.lost.tag = length(which(tag_loss %in% T)),
-            total.witset.recaps = length(which(!is.na(recap_tag_number))),
-            prop.tag.loss = num.lost.tag/sum(num.lost.tag,total.witset.recaps))
-tag.loss202324
+(tag.loss <- tobog %>% 
+   filter(year %in% 2023:2024) %>% 
+   group_by(year) %>% 
+   summarize(total.inspected = length(which(!is.na(recap_caudal_punch))),
+             total.fish = sum(total),
+             min.tag.lost = sum(witset.taglost),
+             min.tag.loss.perc = min.tag.lost/total.inspected,
+             expanded.tag.loss = min.tag.loss.perc*total.fish,
+             witset.recaps = sum(origin, na.rm=T),
+             tag.loss.perc = expanded.tag.loss/(witset.recaps+expanded.tag.loss)))
+tag.loss$tag.loss.perc*100
 
 
 # check FL of the Toboggan recaps and the FLs from Witset on measurements of the 
-# same fish
+# same fish. Only really started being part of protocol in 2023/2024
 (forklengths <- tobog %>% 
-  filter(year %in% yr.select.QA, !is.na(recap_tag_number)) %>% 
+  filter(year %in% 2023:2024, !is.na(recap_tag_number)) %>% 
   select(recap_tag_number, mark_gender, FL, date) %>% 
   left_join(witset[witset$year %in% yr.select.QA,], 
             by = c("recap_tag_number"="AppliedTagNumber")) %>% 
@@ -1192,7 +1260,7 @@ ggplot(tobog)+
 
 
 # are Witset recaps size representative of TBC run? 
-ggplot(tobog[tobog$year %in% yr.select.QA,])+
+ggplot(tobog[tobog$year %in% c(2023,2024),])+
   geom_histogram(aes(x=FL, fill=!is.na(recap_tag_number)))+
   facet_wrap(~c(year))+
   labs(fill = "Is a recap?")
@@ -1209,24 +1277,36 @@ tobog.tags <- tobog %>%
               filter(year %in% yr.select.QA),
             by = c("recap_tag_number"="AppliedTagNumber")) 
 (tobog.tags  %>% 
-  filter(is.na(Species)))
+  filter(is.na(Species)) %>% 
+    arrange(recap_tag_number))
 
 #18 recovered tags at toboggan between 2018 and 2021 have no match at witset
 #update: back to 2014, there are now 77 tags from Toboggan that are not in Witset DB
 # fixed back to 2018 of these so far, 58 remain from 2016 and further backward
 #2023: 10 tags that are not in witset db, fixed 1, the others come from missing data sheets
 # at Witset
+#2024: 14 outstanding tags not matched, all from likely missing pages at Witset
+
+
 
 
 #### Filling Missing Witset Tags ####
 
-# make up tag data for CO Sept 22 Canyon and Sep 27th Canyon,
-# also missing applied tag series from July 4 - SK y-4166 to y-4198:
+# make up tag data for CO Sept 22 Canyon and Sep 27th Canyon in 2023,
+# also missing applied tag series from July 4 - SK y-4166 to y-4198 in 2023:
+
+# make up missing tag series from 2024:
+# likely missing CO tag series: Aug 19: b-46230 to b-46250 (min), b-16801 to 16825 (min)
+# and Sept 4: b-17401 to 17425
+# and Sept 18: b-18586 to 18650
+#full day missing Aug 19, 2024
+
 
 #add missing applied tags
-missing.Atags <- data.frame(matrix(ncol = ncol(witset),nrow = length(c(52663:52705,52795:52829))))
-names(missing.Atags) = names(witset)
-witset.missing.tags <-  missing.Atags %>% 
+missing.Atags2023 <- data.frame(matrix(ncol = ncol(witset),
+                                   nrow = length(c(52663:52705,52795:52829))))
+names(missing.Atags2023) = names(witset)
+witset.missing.tags2023 <-  missing.Atags2023 %>% 
                         mutate(Sample_Id = 9999, Species = "CO",
                          year = 2023, TagStatus = "A", AppliedColor= "Blue", 
                          AppliedCaudalPunch = "T",
@@ -1236,139 +1316,239 @@ witset.missing.tags <-  missing.Atags %>%
                          sample_year = 2023,Location_Code = "Canyon",
                          Sample_Date = as_date(ifelse(AppliedTagNumber<=52705,
                                               ymd("2023-09-22"),
-                                              ymd("2023-09-27"))))
+                                              ymd("2023-09-27"))),
+                         AppliedTagNumberPresent = T, Year.Species = paste0(year,Species),
+                         myTagColor = AppliedColor, myTagNumber = AppliedTagNumber,
+                         ISOweek = isoweek(Sample_Date),SYT = paste0(Species,year,myTagNumber))
 
-#add missing applied tags for SK
+missing.Atags2024 <- data.frame(matrix(ncol = ncol(witset),
+                                   nrow = length(c(46230:46250,16801:16825,
+                                                   17401:17425,18586:18650))))
+names(missing.Atags2024) = names(witset)
+witset.missing.tags2024 <-  missing.Atags2024 %>% 
+  mutate(Sample_Id = 9999, Species = "CO",
+         year = 2024, TagStatus = "A", AppliedColor= "Blue", 
+         AppliedCaudalPunch = "B",
+         AppliedTagNumber = c(46230:46250,16801:16825,17401:17425,18586:18650), 
+         Harvested = FALSE,tag.yr.sp = paste0(AppliedTagNumber,".",year,Species),
+         new.tag = paste0("b","-",AppliedTagNumber),
+         sample_year = 2024,Location_Code = "Canyon",
+         Sample_Date = as_date(ifelse(AppliedTagNumber %in% c(46230:46250,16801:16825),ymd("2024-08-19"),
+                                      ifelse(AppliedTagNumber %in% c(17401:17425),ymd("2024-09-04"),
+                                             ifelse(AppliedTagNumber %in% c(17401:17425),ymd("2024-09-18"), NA)))),
+         AppliedTagNumberPresent = T, Year.Species = paste0(year,Species),
+         myTagColor = AppliedColor, myTagNumber = AppliedTagNumber,
+         ISOweek = isoweek(Sample_Date),SYT = paste0(Species,year,myTagNumber))
+
+#combine: 
+witset.missing.tagsCO <- rbind(witset.missing.tags2023,witset.missing.tags2024)
+
+
+#add missing applied tags for SK 2023
+
 missing.AtagsSK <- data.frame(matrix(ncol = ncol(witset),nrow = length(c(4166:4198))))
 names(missing.AtagsSK) = names(witset)
 witset.missing.tagsSK <-  missing.AtagsSK %>% 
-  mutate(Sample_Id = 10001, Species = "SK",
+  mutate(Sample_Id = 9999, Species = "SK",
          year = 2023, TagStatus = "A", AppliedColor= "Yellow", 
          AppliedCaudalPunch = "B",
          AppliedTagNumber = c(4166:4198), 
          Harvested = FALSE,tag.yr.sp = paste0(AppliedTagNumber,".",year,Species),
          new.tag = paste0("y","-",AppliedTagNumber),
          sample_year = 2023,Location_Code = "Campground",
-         Sample_Date = as_date(ymd("2023-07-04")))
+         Sample_Date = as_date(ymd("2023-07-04")),
+         AppliedTagNumberPresent = T, Year.Species = paste0(year,Species),
+         myTagColor = AppliedColor, myTagNumber = AppliedTagNumber,
+         ISOweek = isoweek(Sample_Date),SYT = paste0(Species,year,myTagNumber))
 
-#calc ave time between tagging and recapture around this time
-x <- witset %>% 
-  filter(Species %in% "CO", year %in% 2023, 
-         Location_Code %in% "Canyon",!is.na(recap.tag)) %>% 
-  select(Sample_Date_recap=Sample_Date,recap.tag) %>% 
-  left_join(witset[witset$year %in% yr.select.QA,c("Sample_Date","new.tag")], by=c("recap.tag"="new.tag")) %>% 
-  mutate(time.between = difftime(Sample_Date_recap,Sample_Date, units = "days")) %>% 
-  filter(Sample_Date_recap %in% seq(ymd("2023-09-15"),ymd("2023-10-15"),1)) %>% 
-  summarize(ave.time.between = mean(time.between, na.rm=T),
-            sd.time.between = sd(time.between,na.rm=T),
-            min.time.between = min(time.between,na.rm=T),
-            max.time.between = max(time.between,na.rm=T))
-x  
+#Since these are whole pages lost, 
+# calc ave time between tagging and recapture around this time
+# CURRENTLY NOT USED, just adding known A tags for now
 
-#calc ave tags recaptured/ fish released or harvested around this time
-total.tags.by.day <- witset %>% 
-  filter(Species %in% "CO", year %in% 2023, Location_Code %in% "Canyon" ) %>% 
-  group_by(Sample_Date,Location_Code) %>% 
-  summarize(tot.NAper.day = length(which(is.na(TagStatus)&Harvested %in% F)),
-            tot.Harvestper.day = length(which(Harvested %in% T)),
-            tot.Rper.day = length(which(TagStatus %in% c("R")))) 
+# x2023 <- witset %>% 
+#   filter(Species %in% "CO", year %in% 2023, 
+#          Location_Code %in% "Canyon",!is.na(recap.tag)) %>% 
+#   select(Sample_Date_recap=Sample_Date,recap.tag) %>% 
+#   left_join(witset[witset$year %in% 2023,c("Sample_Date","new.tag")], by=c("recap.tag"="new.tag")) %>% 
+#   mutate(time.between = difftime(Sample_Date_recap,Sample_Date, units = "days")) %>% 
+#   mutate(Sample_Date_recap = as_date(Sample_Date_recap)) %>% 
+#   filter(Sample_Date_recap %in% seq(ymd("2023-09-15"),ymd("2023-10-15"),1)) %>% 
+#   summarize(ave.time.between = mean(time.between, na.rm=T),
+#             sd.time.between = sd(time.between,na.rm=T),
+#             min.time.between = min(time.between,na.rm=T),
+#             max.time.between = max(time.between,na.rm=T))
+# x2023  
+# 
+# x2024 <- witset %>% 
+#   filter(Species %in% "CO", year %in% 2024, 
+#          Location_Code %in% "Campground",!is.na(recap.tag)) %>% 
+#   select(Sample_Date_recap=Sample_Date,recap.tag) %>% 
+#   left_join(witset[witset$year %in% 2024,c("Sample_Date","new.tag")], by=c("recap.tag"="new.tag")) %>% 
+#   mutate(time.between = difftime(Sample_Date_recap,Sample_Date, units = "days")) %>% 
+#   mutate(Sample_Date_recap = as_date(Sample_Date_recap)) %>% 
+#   filter(Sample_Date_recap %in% seq(ymd("2024-08-19"),ymd("2024-09-18"),1)) %>% 
+#   summarize(ave.time.between = mean(time.between, na.rm=T),
+#             sd.time.between = sd(time.between,na.rm=T),
+#             min.time.between = min(time.between,na.rm=T),
+#             max.time.between = max(time.between,na.rm=T))
+# x2024  
+# 
+# 
+# 
+# #calc ave tags recaptured/ fish released or harvested around this time
+# total.tags.by.day23 <- witset %>% 
+#   filter(Species %in% "CO", year %in% 2023, Location_Code %in% "Canyon" ) %>% 
+#   mutate(Sample_Date = as_date(Sample_Date)) %>% 
+#   group_by(Sample_Date,Location_Code) %>% 
+#   summarize(tot.NAper.day = length(which(is.na(TagStatus)&Harvested %in% F)),
+#             tot.Harvestper.day = length(which(Harvested %in% T)),
+#             tot.Rper.day = length(which(TagStatus %in% c("R")))) 
+# total.tags.by.day24 <- witset %>% 
+#   filter(Species %in% "CO", year %in% 2024, Location_Code %in% "Campground" ) %>% 
+#   mutate(Sample_Date = as_date(Sample_Date)) %>% 
+#   group_by(Sample_Date,Location_Code) %>% 
+#   summarize(tot.NAper.day = length(which(is.na(TagStatus)&Harvested %in% F)),
+#             tot.Harvestper.day = length(which(Harvested %in% T)),
+#             tot.Rper.day = length(which(TagStatus %in% c("R")))) 
+# 
+# 
+# # use Sept 20+21st 2023 ave numbers to predict for Sept 22nd 2023
+# total.tags.by.day22nd <- total.tags.by.day23 %>% 
+#   filter(Sample_Date %in% seq(ymd("2023-09-20"),ymd("2023-09-21"),1)) %>% 
+#   group_by() %>% 
+#   summarize(tot.NAper.day = round(mean(tot.NAper.day),0),
+#             tot.Harvestper.day = round(mean(tot.Harvestper.day),0),
+#             tot.Rper.day = round(mean(tot.Rper.day),0)) %>% 
+#   mutate(Sample_Date = ymd("2023-09-22"), 
+#          start.sample = Sample_Date-x$ave.time.between-x$sd.time.between,
+#          end.sample = Sample_Date)
+# 
+# total.tags.by.day22nd
+# 
+# #use Sept 26, and Oct 3rd for later part of Sept 27th 2023
+# total.tags.by.day27th <- total.tags.by.day23 %>% 
+#   filter(Sample_Date %in% seq(ymd("2023-09-26"),ymd("2023-10-03"),1)) %>% 
+#   group_by() %>% 
+#   summarize(tot.NAper.day = round(mean(tot.NAper.day),0),
+#             tot.Harvestper.day = round(mean(tot.Harvestper.day),0),
+#             tot.Rper.day = round(mean(tot.Rper.day),0)) %>% 
+#   mutate(Sample_Date = ymd("2023-09-27"), 
+#          start.sample = Sample_Date-x$ave.time.between-x$sd.time.between,
+#          end.sample = Sample_Date)
+# 
+# total.tags.by.day27th
+# 
+# #use Aug 16 and 20th to predict for Aug 19th 2024
+# total.tags.by.day19th <- total.tags.by.day24 %>% 
+#   filter(Sample_Date %in% seq(ymd("2024-08-16"),ymd("2024-08-20"),1)) %>% 
+#   group_by() %>% 
+#   summarize(tot.NAper.day = round(mean(tot.NAper.day),0),
+#             tot.Harvestper.day = round(mean(tot.Harvestper.day),0),
+#             tot.Rper.day = round(mean(tot.Rper.day),0)) %>% 
+#   mutate(Sample_Date = ymd("2024-08-19"), 
+#          start.sample = Sample_Date-x$ave.time.between-x$sd.time.between,
+#          end.sample = Sample_Date)
+# 
+# total.tags.by.day19th
+# 
+# 
+# 
+# #add a random sample of recap tags, using ave time between applied and recaps
+# 
+# #Sept 22nd:
+# 
+# sample.recaps22nd <- witset %>% 
+#   filter(Species %in% "CO", 
+#          Sample_Date %in% seq(total.tags.by.day22nd$start.sample,
+#                               total.tags.by.day22nd$end.sample,1),
+#          !is.na(AppliedTagNumber)) %>% 
+#   select(AppliedTagNumber) 
+# 
+# sample.recaps22nd <- 
+#   sample(sample.recaps22nd$AppliedTagNumber,total.tags.by.day22nd$tot.Rper.day)
+# 
+# missing.Rtags1 <- data.frame(matrix(ncol = ncol(witset),nrow = total.tags.by.day22nd$tot.Rper.day))
+# names(missing.Rtags1) = names(witset)
+# 
+# witset.missing.tags <- rbind(witset.missing.tags,missing.Rtags1 %>% 
+#                        mutate(Sample_Id = 9999, Species = "CO",
+#                               year = 2023, TagStatus = "R", Recaptured.Color= "Blue", 
+#                               RecapturedCaudalPunch = "T",
+#                               Recaptured.number = sample.recaps22nd, 
+#                               Harvested = FALSE,tag.yr.sp = paste0(Recaptured.number,".",year,Species),
+#                               recap.tag = paste0("b","-",Recaptured.number),
+#                               sample_year = 2023,Location_Code = "Canyon",
+#                               Sample_Date = as_date(ymd("2023-09-22"))))
+# 
+# #Sept 27th:
+# 
+# sample.recaps27th <- witset %>% 
+#   filter(Species %in% "CO", 
+#          Sample_Date %in% seq(total.tags.by.day27th$start.sample,
+#                               total.tags.by.day27th$end.sample,1),
+#          !is.na(AppliedTagNumber)) %>% 
+#   select(AppliedTagNumber) 
+# 
+# sample.recaps27th <- 
+#   sample(sample.recaps27th$AppliedTagNumber,total.tags.by.day27th$tot.Rper.day)
+# 
+# missing.Rtags2 <- data.frame(matrix(ncol = ncol(witset),nrow = total.tags.by.day27th$tot.Rper.day))
+# names(missing.Rtags2) = names(witset)
+# 
+# missing.NAtags2 <- data.frame(matrix(ncol = ncol(witset),nrow = total.tags.by.day27th$tot.NAper.day))
+# names(missing.NAtags2) = names(witset)
+# missing.NAtags2 <- missing.NAtags2 %>% 
+#   mutate(Sample_Id = 9999, Species = "CO",
+#          year = 2023, TagStatus = NA, 
+#          Harvested = FALSE,tag.yr.sp = paste0(Recaptured.number,".",year,Species),
+#          sample_year = 2023,Location_Code = "Canyon",
+#          Sample_Date = as_date(ymd("2023-09-27")))
+# 
+# witset.missing.tags <- rbind(witset.missing.tags, missing.NAtags2,missing.Rtags2 %>% 
+#                        mutate(Sample_Id = 9999, Species = "CO",
+#                               year = 2023, TagStatus = "R", Recaptured.Color= "Blue", 
+#                               RecapturedCaudalPunch = "T",
+#                               Recaptured.number = sample.recaps27th, 
+#                               Harvested = FALSE,tag.yr.sp = paste0(Recaptured.number,".",year,Species),
+#                               recap.tag = paste0("b","-",Recaptured.number),
+#                               sample_year = 2023,Location_Code = "Canyon",
+#                               Sample_Date = as_date(ymd("2023-09-27"))))
+# 
+# # for Aug 19th 2024
+# 
+# sample.recaps19th <- witset %>% 
+#   filter(Species %in% "CO", 
+#          Sample_Date %in% seq(total.tags.by.day19th$start.sample,
+#                               total.tags.by.day19th$end.sample,1),
+#          !is.na(AppliedTagNumber)) %>% 
+#   select(AppliedTagNumber) 
+# 
+# sample.recaps19th <- 
+#   sample(sample.recaps19th$AppliedTagNumber,total.tags.by.day19th$tot.Rper.day)
+# 
+# missing.Rtags1 <- data.frame(matrix(ncol = ncol(witset),nrow = total.tags.by.day19th$tot.Rper.day))
+# names(missing.Rtags1) = names(witset)
+# 
+# witset.missing.tags <- rbind(witset.missing.tags,missing.Rtags1 %>% 
+#                                mutate(Sample_Id = 9999, Species = "CO",
+#                                       year = 2024, TagStatus = "R", Recaptured.Color= "Blue", 
+#                                       RecapturedCaudalPunch = "T",
+#                                       Recaptured.number = sample.recaps19th, 
+#                                       Harvested = FALSE,tag.yr.sp = paste0(Recaptured.number,".",year,Species),
+#                                       recap.tag = paste0("b","-",Recaptured.number),
+#                                       sample_year = 2024,Location_Code = "Canyon",
+#                                       Sample_Date = as_date(ymd("2024-08-19"))))
 
-
-# use Sept 20+21st ave numbers to predict for Sept 22nd
-total.tags.by.day22nd <- total.tags.by.day %>% 
-  filter(Sample_Date %in% seq(ymd("2023-09-20"),ymd("2023-09-21"),1)) %>% 
-  group_by() %>% 
-  summarize(tot.NAper.day = round(mean(tot.NAper.day),0),
-            tot.Harvestper.day = round(mean(tot.Harvestper.day),0),
-            tot.Rper.day = round(mean(tot.Rper.day),0)) %>% 
-  mutate(Sample_Date = ymd("2023-09-22"), 
-         start.sample = Sample_Date-x$ave.time.between-x$sd.time.between,
-         end.sample = Sample_Date)
-
-total.tags.by.day22nd
-
-#use Sept 26, and Oct 3rd for later part of Sept 27th
-total.tags.by.day27th <- total.tags.by.day %>% 
-  filter(Sample_Date %in% seq(ymd("2023-09-26"),ymd("2023-10-03"),1)) %>% 
-  group_by() %>% 
-  summarize(tot.NAper.day = round(mean(tot.NAper.day),0),
-            tot.Harvestper.day = round(mean(tot.Harvestper.day),0),
-            tot.Rper.day = round(mean(tot.Rper.day),0)) %>% 
-  mutate(Sample_Date = ymd("2023-09-27"), 
-         start.sample = Sample_Date-x$ave.time.between-x$sd.time.between,
-         end.sample = Sample_Date)
-
-total.tags.by.day27th
-
-#add a random sample of recap tags, using ave time between applied and recaps
-
-#Sept 22nd:
-
-sample.recaps22nd <- witset %>% 
-  filter(Species %in% "CO", 
-         Sample_Date %in% seq(total.tags.by.day22nd$start.sample,
-                              total.tags.by.day22nd$end.sample,1),
-         !is.na(AppliedTagNumber)) %>% 
-  select(AppliedTagNumber) 
-
-sample.recaps22nd <- 
-  sample(sample.recaps22nd$AppliedTagNumber,total.tags.by.day22nd$tot.Rper.day)
-
-missing.Rtags1 <- data.frame(matrix(ncol = ncol(witset),nrow = total.tags.by.day22nd$tot.Rper.day))
-names(missing.Rtags1) = names(witset)
-
-witset.missing.tags <- rbind(witset.missing.tags,missing.Rtags1 %>% 
-                       mutate(Sample_Id = 9999, Species = "CO",
-                              year = 2023, TagStatus = "R", Recaptured.Color= "Blue", 
-                              RecapturedCaudalPunch = "T",
-                              Recaptured.number = sample.recaps22nd, 
-                              Harvested = FALSE,tag.yr.sp = paste0(Recaptured.number,".",year,Species),
-                              recap.tag = paste0("b","-",Recaptured.number),
-                              sample_year = 2023,Location_Code = "Canyon",
-                              Sample_Date = as_date(ymd("2023-09-22"))))
-
-#Sept 27th:
-
-sample.recaps27th <- witset %>% 
-  filter(Species %in% "CO", 
-         Sample_Date %in% seq(total.tags.by.day27th$start.sample,
-                              total.tags.by.day27th$end.sample,1),
-         !is.na(AppliedTagNumber)) %>% 
-  select(AppliedTagNumber) 
-
-sample.recaps27th <- 
-  sample(sample.recaps27th$AppliedTagNumber,total.tags.by.day27th$tot.Rper.day)
-
-missing.Rtags2 <- data.frame(matrix(ncol = ncol(witset),nrow = total.tags.by.day27th$tot.Rper.day))
-names(missing.Rtags2) = names(witset)
-
-missing.NAtags2 <- data.frame(matrix(ncol = ncol(witset),nrow = total.tags.by.day27th$tot.NAper.day))
-names(missing.NAtags2) = names(witset)
-missing.NAtags2 <- missing.NAtags2 %>% 
-  mutate(Sample_Id = 10000, Species = "CO",
-         year = 2023, TagStatus = NA, 
-         Harvested = FALSE,tag.yr.sp = paste0(Recaptured.number,".",year,Species),
-         sample_year = 2023,Location_Code = "Canyon",
-         Sample_Date = as_date(ymd("2023-09-27")))
-
-witset.missing.tags <- rbind(witset.missing.tags, missing.NAtags2,missing.Rtags2 %>% 
-                       mutate(Sample_Id = 10000, Species = "CO",
-                              year = 2023, TagStatus = "R", Recaptured.Color= "Blue", 
-                              RecapturedCaudalPunch = "T",
-                              Recaptured.number = sample.recaps27th, 
-                              Harvested = FALSE,tag.yr.sp = paste0(Recaptured.number,".",year,Species),
-                              recap.tag = paste0("b","-",Recaptured.number),
-                              sample_year = 2023,Location_Code = "Canyon",
-                              Sample_Date = as_date(ymd("2023-09-27"))))
 
 
 # re-join with main witset db
 
-witset <- rbind(witset, witset.missing.tags,witset.missing.tagsSK)
+witset <- rbind(witset, witset.missing.tagsCO,witset.missing.tagsSK)
 
 # note that unless we set the seed we will have a different sample every time this is run
 
-# re:check orphans at Toboggan:
+
+# re:check orphans at Toboggan to see if above added tags solves it:
 tobog.tags <- tobog %>% 
   filter(!is.na(recap_tag_number), year %in% yr.select) %>% 
   select(order,date,recap_tag_colour,recap_tag_number,year) %>% 
@@ -1379,10 +1559,7 @@ tobog.tags <- tobog %>%
 (tobog.tags  %>% 
     filter(is.na(Species), year %in% yr.select.QA))
 
-#all are accounted for!
-
-
-
+#should be 0 if all tags match
 
 
 
@@ -1596,7 +1773,7 @@ plot.recap.origin.tobog
 #Applied tags
 applied.witset <- witset %>% 
   filter(!is.na(AppliedTagNumber)) %>% 
-  filter(year %in% yr.select, Species %in% c("CO","SK", "ST")) %>% 
+  filter(year %in% yr.select, Species %in% c("CO","SK")) %>% 
   select(year, Sample_Date, Location_Code, Species,TagStatus,
          tag.col=AppliedColor, tag.num = AppliedTagNumber,
          ForkLength, Sex)
@@ -1617,9 +1794,7 @@ recap.witset <- witset %>%
           tag.col=Recaptured.Color, tag.num = Recaptured.number,
           ForkLength, Sex)
 
-
-
-#how many excluded because have no number?
+#how many recaps excluded because have no number?
 witset %>% 
   filter(year %in% yr.select, Species %in% c("CO","SK")) %>% 
   filter(TagStatus %in% c("R","AR") & is.na(Recaptured.number)) %>% 
@@ -1641,6 +1816,7 @@ tags.all.witset <- rbind(applied.witset, recap.witset) %>%
   arrange(year,Species, tag.num)
 
 
+
 uniq.tags <- data.frame(tag.yr.sp = unique(tags.all.witset$tag.yr.sp)) %>% 
   mutate(ID = 1:length(unique(tags.all.witset$tag.yr.sp)))
 #abandoned for the moment, since Carl's method works after some small adjustments
@@ -1649,23 +1825,20 @@ uniq.tags <- data.frame(tag.yr.sp = unique(tags.all.witset$tag.yr.sp)) %>%
 
 ## ## ##
 # From carl's script:
-witset <- witset %>% 
-  mutate(AppliedTagNumberPresent = !is.na(witset$AppliedTagNumber),
-         RecapturedTagNumberPresent=!is.na(witset$Recaptured.number)) %>% 
-  mutate(VentralClip = NULL, AdiposeClip = NULL) %>% 
-  mutate(Year.Species = paste0(year,".",Species)) %>% 
-  mutate(AppliedColor = tolower(AppliedColor),
-         RecapturedColor = tolower(Recaptured.Color)) %>% 
-  mutate(myTagColor = Recaptured.Color, 
-         myTagNumber = Recaptured.number) %>% #starts with recap # in this spot so if there is an applied tag it will overwrite
-  mutate(ISOweek = isoweek(Sample_Date)) %>% 
-  mutate(SYT = paste(Species, year, myTagNumber, sep="."))
+# witset <- witset %>% 
+#   mutate(AppliedTagNumberPresent = !is.na(witset$AppliedTagNumber), #uses only those fish with tag number
+#          RecapturedTagNumberPresent=!is.na(witset$Recaptured.number)) %>% 
+#   mutate(VentralClip = NULL, AdiposeClip = NULL) %>% 
+#   mutate(Year.Species = paste0(year,".",Species)) %>% 
+#   mutate(AppliedColor = tolower(AppliedColor),
+#          RecapturedColor = tolower(Recaptured.Color)) %>% 
+#   mutate(myTagColor = Recaptured.Color, 
+#          myTagNumber = Recaptured.number) %>% #starts with recap # in this spot so if there is an applied tag it will overwrite
+#   mutate(ISOweek = isoweek(Sample_Date)) %>% 
+#   mutate(SYT = paste(Species, year, myTagNumber, sep=".")) %>% 
+#   filter(Species %in% c("CO","SK")) #filter for just these two sp
 
-#KP myTagNumber includes fish with tag col only, recap number, or tag number only 
-select <-!is.na(witset$AppliedColor)|!is.na(witset$AppliedTagNumber)
-witset$myTagColor [select] <- witset$AppliedColor    [select]
-witset$myTagNumber[select] <- witset$AppliedTagNumber[select]
-witset$myTagNumber[witset$Species %in% "CH"] <- NA
+
 
 
 #look at whether there are recaps before applied tags
@@ -1706,17 +1879,21 @@ witset %>%
          Species, new.tag, recap.tag, RecapturedCaudalPunch) %>% 
   arrange(desc(year))
 
-#there are a handful of these every year... could potentially re-generate tag numbers for them? For now stick with NA
+#there are a handful of these every year. Likely most are caudal punches only, not even tag losses
 witset[which(witset$TagStatus %in% "R" &
                is.na(witset$Recaptured.number)), 
        "TagStatus"] <- "NA"
 
 
-#currently this does not include and harvest of tagged fish, but it could.
+#currently this does not include any harvest of tagged fish, but it could.
+
 
 #original with mods:
-cap.hist <- plyr::ddply(witset[witset$year %in% yr.select,], c("Species","year","myTagNumber"), function(x){
+cap.hist <- plyr::ddply(witset[witset$year %in% yr.select & witset$Species %in% c("CO","SK"),], 
+                        c("Species","year","myTagNumber"), function(x){
+#cap.hist <- plyr::ddply(witset[1:100,], c("Species","year","myTagNumber"), function(x){
   #default values
+  #browser()
   freq=0 
   hist=".."
   #live.hist = ".." started to include fate in here but left off for now
@@ -1724,7 +1901,6 @@ cap.hist <- plyr::ddply(witset[witset$year %in% yr.select,], c("Species","year",
   w2 <- NA
   # if a tag number is present, then this is a single fish and away we go
   if(x$Species[1] %in% c("CO","SK") & !is.na(x$myTagNumber[1])){  
-    # browser()
     freq <- 1
     hist <- "00"
     #live.hist = "00"
@@ -1744,10 +1920,10 @@ cap.hist <- plyr::ddply(witset[witset$year %in% yr.select,], c("Species","year",
       w2 <- min(x$ISOweek[select]) #the timing of the first capture (in cases of serial recaps)
     }
   } 
-  #KP note that the below code gives capture histories to fish with no tag number ("01"). If want to exclude these would I just remove the TagStatus A to AR?
+  #KP note that the below code gives capture histories to fish with no tag number @ canyon ("01"). 
   if(x$Species[1] %in% c("CO","SK") & is.na(x$myTagNumber[1])){  # batch marks or first time captures in Canyon
     # we will create individual capture histories for each fish so that stratification is a breeze later
-    select <- x$TagStatus %in% c(NA,"A","A2","AR") & x$Location_Code=="Canyon"
+    select <- x$TagStatus %in% c("NA","A","A2","AR") & x$Location_Code=="Canyon"
     x <- x[select,]
     freq <- 1
     hist <- rep("01", nrow(x))
@@ -1755,20 +1931,32 @@ cap.hist <- plyr::ddply(witset[witset$year %in% yr.select,], c("Species","year",
     w2 <- x$ISOweek
   }
   data.frame(hist=hist, freq=freq, w1=w1, w2=w2)
-}) %>% filter(Species %in% c("CO","SK"))
+}) 
+
+#comparing row numbers for troubleshooting
+# witset %>% 
+#   filter(year %in% yr.select, Location_Code %in% "Campground", Species %in% c("CO","SK")) %>% 
+#   summarize(tot.tagstatusA = length(which(TagStatus %in% c("A","A2"))),
+#             tot.appliedcol = length(which(!is.na(AppliedColor))),
+#             tot.appliednum = length(which(!is.na(AppliedTagNumber))))
+# 
+# witset %>% 
+#   filter(year %in% yr.select, Location_Code %in% "Canyon", Species %in% c("CO","SK")) %>% 
+#   summarize(tot.tagstatusANA = length(which(TagStatus %in% c("A","A2", "NA"))),
+#             tot.appliedcol = length(which(!is.na(AppliedColor))),
+#             tot.appliednum = length(which(!is.na(AppliedTagNumber))))
+
+# Had some bugs re-running this script in 2025- the NAs were NOT in brackets. Seems to have corrected it
+
 
 cap.hist$Species.Hist <- paste0(cap.hist$Species,'.', cap.hist$hist)
 
-
 xtabs(~Species+hist, data=cap.hist, exclude=NULL, na.action=na.pass)
+#these are misfits:
 cap.hist[cap.hist$hist%in%"00",]
 
 
-
-
-#addmargins(xtabs(freq ~Year+Species.Hist, data=cap.hist, exclude=NULL, na.action=na.pass),1)
-
-
+# make wide capture histories 
 cap.hist.wide <- tidyr::pivot_wider(cap.hist,
                                     id_cols=c("Species","year"),
                                     names_from="hist",
@@ -1793,7 +1981,7 @@ all.summary <- plyr::adply(cap.hist.wide,1, function(x){
 #### Stratified Petersen ####
 
 # Assess the marked fractions
-mf.min.recap <- 20
+mf.min.recap <- 20 # if there were not enough recaps (min 20)
 equal.MF <- plyr::dlply(cap.hist, c("Species","year"), function(x){
   cat("Processing ", x$Species[1], " ", x$year[1], "\n")
   #if(x$Species[1]=="CO")browser()
@@ -1873,7 +2061,7 @@ t.tagrecoveries$Sample_Date   <- as_date(t.tagrecoveries$date)
 t.tagrecoveries$ISOweek       <- lubridate::isoweek(t.tagrecoveries$Sample_Date)
 
 t.witset <- plyr::rbind.fill( witset.red, t.tagrecoveries)
-#xtabs(~Location_Code+TagStatus, data=t.witset, exclude=NULL, na.action=na.pass)
+xtabs(~Location_Code+TagStatus, data=t.witset, exclude=NULL, na.action=na.pass)
 
 
 t.cap.hist <- plyr::ddply(t.witset, c("Species","year","myTagNumber"), function(x){
@@ -1888,7 +2076,7 @@ t.cap.hist <- plyr::ddply(t.witset, c("Species","year","myTagNumber"), function(
   date2 <- as_date(NA)
   date3 <- as_date(NA)
   
-  if(x$Species[1] %in% c("SK","ST","CH"))stop("This species not supported for Toboggan Creek")
+  #if(x$Species[1] %in% c("SK","ST","CH"))stop("This species not supported for Toboggan Creek")
   if(!is.na(x$myTagNumber[1])){  # applied in campground or recaptured (from those released) on canyon or t.creek
     #browser()
     freq <- 1
@@ -1897,13 +2085,10 @@ t.cap.hist <- plyr::ddply(t.witset, c("Species","year","myTagNumber"), function(
     if( any(select)) {
       substr(hist,1,1) <- '1'
       w1 <- min(x$ISOweek[select])
-      date1 <- as_date(mean(x$Sample_Date[select], na.rm=TRUE)) #is this supposed to be mean?
+      date1 <- as_date(mean(x$Sample_Date[select], na.rm=T)) #is this supposed to be mean? Change to First?
     }
     select <- x$TagStatus %in% c("R","A","A2","AR") & x$Location_Code=="Canyon" &
-      x$Harvested %in% FALSE
-    # select <- x %>% 
-    #   filter(TagStatus %in% c("R","A","A2","AR") & Location_Code=="Canyon" &
-    #            Harvested %in% F) # I added this because second MR is more influential
+      x$Harvested %in% FALSE # I added this because third location is more influential to popn estimate. For co only 6 over years
     if( any(select)){
       substr(hist,2,2) <- '1' 
       w2 <- min(x$ISOweek[select])
@@ -1921,7 +2106,7 @@ t.cap.hist <- plyr::ddply(t.witset, c("Species","year","myTagNumber"), function(
 })
 
 
-# exclude histories that are missing
+# exclude histories that are missing (I think these were just auto-created, they are not real data...)
 t.cap.hist <- t.cap.hist[ t.cap.hist$hist != "...",]
 
 t.cap.hist %>% 
@@ -1954,14 +2139,29 @@ t.markedunmarked.sum <- merge(t.markedunmarked.sum, t.tagrecoveries.sum)
 t.markedunmarked.sum$t.unmarked.3 <- t.markedunmarked.sum$total.coho - t.markedunmarked.sum$total.coho.marked
 
 t.unmarked <- merge(t.unmarked, t.markedunmarked.sum[,c("Species","year","t.unmarked.3")])
-#*** NOTE: tags that were unidentified are put into the unmarked tally *** ###  
+#*** NOTE: missing tag numbers were just removed like they didn't exist *** ###  
+
+#compare to tobog data (troubleshooting):
+# tobog %>% 
+#   filter(year %in% yr.select, species %in% "CO", is.na(recap_tag_number)) %>% 
+#   group_by(year) %>% 
+#   summarize(tot.no.tagnum = sum(total))
+# 
+# t.unmarked
+
 
 
 # assess the total marked removal from camp to canyon per yr
 
-cap.hist
+witset %>% 
+  filter(year %in% yr.select, Species %in% c("CO","SK"), Location_Code %in% "Canyon") %>% 
+  group_by(Species, year) %>% 
+  summarize(tot.R = length(which(TagStatus %in% "R")),
+            tot.A.AR.A2 = length(which(TagStatus %in% c("A","AR","A2"))),
+            tot.R.harvested = length(which(TagStatus %in% "R" & Harvested %in% T)))
 
-
+# likely 2023 SK tags were more reported by fisherman to crew rather than the morts being from the crew
+# in that case we just remove them, yes?
 
 
 
@@ -2078,7 +2278,86 @@ sizes.CO.df <- sizes %>%
 #   geom_histogram(aes(x=ForkLength, fill=Tag.Harvest), binwidth=5, col="black")+
 #   facet_wrap(~year+Location_Code)
 
+
+
 #compare sizes for fish recaptured at Toboggan with tagged fish
+
+#note that TBC only really started measuring FL consistently in 2023
+
+witset %>% 
+  filter(Species %in% "CO", year %in% 2023:2024, Location_Code %in% "Campground") %>% 
+  group_by(year) %>% 
+  summarize(total.measured=n(),
+            min = min(ForkLength, na.rm=T)*10,
+            max = max(ForkLength, na.rm=T)*10,
+            mn = mean(ForkLength, na.rm=T)*10,
+            perc.under.45 = length(which(ForkLength < 45))/n()*100)
+witset %>% 
+  filter(Species %in% "CO", year %in% 2023:2024, Location_Code %in% "Canyon") %>% 
+  group_by(year) %>% 
+  summarize(total.measured=n(),
+            min = min(ForkLength, na.rm=T)*10,
+            max = max(ForkLength, na.rm=T)*10,
+            mn = mean(ForkLength, na.rm=T)*10,
+            perc.under.45 = length(which(ForkLength < 45))/n()*100)
+tobog %>% 
+  filter(species %in% "CO", year %in% 2023:2024) %>% 
+  group_by(year) %>% 
+  summarize(total.measured = length(!is.na(fork_length_mm)),
+            min= min(fork_length_mm, na.rm=T),
+            max = max(fork_length_mm, na.rm=T),
+            mn = mean(fork_length_mm, na.rm=T),
+            perc.under.45 = length(which(fork_length_mm < 450))/total.measured*100)
+
+
+plot.camp.FL.CO <- ggplot()+
+  geom_histogram(data=witset[witset$year %in% 2023:2024 & 
+                                    witset$Species %in% "CO"&
+                                    witset$Location_Code %in% "Campground",],
+                 aes(x=ForkLength*10, fill=as.factor(year)),binwidth = 25, position="stack")+
+  scale_x_continuous(limits = c(250,850),breaks = seq(250,850,50))+
+  theme(legend.position="none")+
+  labs(title="camp CO")
+plot.canyon.FL.CO <- ggplot()+
+  geom_histogram(data=witset[witset$year %in% 2023:2024 & 
+                                    witset$Species %in% "CO"&
+                                    witset$Location_Code %in% "Canyon",],
+                 aes(x=ForkLength*10, fill=as.factor(year)),binwidth = 25,position="stack")+
+  scale_x_continuous(limits = c(250,850),breaks = seq(250,850,50))+
+  theme(legend.position="none")+
+  labs(title="canyon CO")
+plot.TBC.FL.CO <- ggplot()+
+  geom_histogram(data=tobog[tobog$species %in% "CO"&tobog$year %in%2023:2024,],
+                 aes(x=fork_length_mm, fill=as.factor(year)), binwidth=25,position="stack")+
+  scale_x_continuous(limits = c(250,850),breaks = seq(250,850,50))+
+  theme(legend.position="bottom")+
+  labs(title="TBC CO")
+  
+plot(arrangeGrob(plot.camp.FL.CO, plot.canyon.FL.CO, plot.TBC.FL.CO))
+
+plot.camp.FL.CO.tagged <- ggplot()+
+  geom_histogram(data=witset[witset$year %in% 2023:2024 & 
+                               witset$Species %in% "CO"&
+                               witset$Location_Code %in% "Campground"&
+                               witset$TagStatus %in% c("A","A2"),],
+                 aes(x=ForkLength*10, fill=as.factor(year)),binwidth = 25, position="stack")+
+  scale_x_continuous(limits = c(250,850),breaks = seq(250,850,50))+
+  theme(legend.position="none")+
+  labs(title="camp CO")
+plot.canyon.FL.CO.tagged <- ggplot()+
+  geom_histogram(data=witset[witset$year %in% 2023:2024 & 
+                               witset$Species %in% "CO"&
+                               witset$Location_Code %in% "Canyon"&
+                               witset$TagStatus %in% c("A","A2"),],
+                 aes(x=ForkLength*10, fill=as.factor(year)),binwidth = 25,position="stack")+
+  scale_x_continuous(limits = c(250,850),breaks = seq(250,850,50))+
+  theme(legend.position="none")+
+  labs(title="canyon CO")
+
+
+plot(arrangeGrob(plot.camp.FL.CO.tagged, plot.canyon.FL.CO.tagged, plot.TBC.FL.CO))
+#no huge differences that I can see. Maybe fewer big ones in 2024 @ canyon?
+
 
 sizes.CO.tagged <- sizes.CO.df %>%
   filter(Tag.Harvest %in% "Tagged") %>%
@@ -2086,6 +2365,7 @@ sizes.CO.tagged <- sizes.CO.df %>%
                              ifelse(!is.na(AppliedTagNumber),AppliedTagNumber,NA))) %>%
   left_join(t.cap.hist[!is.na(t.cap.hist$date3),] , by = c("year","Species", "tag.number" = "myTagNumber")) %>%
   filter(year %in% yr.select)
+unique(sizes.CO.tagged$Location_Code)
 
 
 plot.forklengthCOtobog.camp <- ggplot(sizes.CO.tagged[sizes.CO.tagged$Location_Code %in% "Campground",])+
@@ -2147,6 +2427,8 @@ plot(plot.forklengthCO.location)
 
 # ggsave(plot=plot.forklengthCO, 
 #        filename = "plot.forklengthCO.png", device = "png", width = 12, height=9.4)
+
+
 
 sizes.SK.df <- sizes %>%
   filter(Species %in% "SK")
@@ -2277,7 +2559,7 @@ bulkley.flow <- bulkley.flow.raw %>%
 
 
 plot.bulkley.flow <- ggplot(bulkley.flow)+
-  geom_line(aes(x=fake.date, y=Value, col=as_factor(year)), size=1.5)+
+  geom_line(aes(x=fake.date, y=Value, col=as_factor(year)), linewidth=1.5)+
   labs(x="Date", y="Discharge (m^3/s, station 08EE005)", col="")+
   scale_x_date(date_breaks = "2 weeks", date_labels = "%b-%d")
 plot.bulkley.flow
@@ -2379,8 +2661,8 @@ plot.temps.2023 <- ggplot(temp_08EC005.raw)+
   facet_wrap(~year)
 plot.temps.2023
 
-ggsave(plot= plot.temps.2023, filename = "plot.temps.2023.png", 
-       width = 8, height = 6)
+# ggsave(plot= plot.temps.2023, filename = "plot.temps.2023.png", 
+#        width = 8, height = 6)
 
 #### Tyee-Witset-Toboggan Run timing ####
 
@@ -2650,8 +2932,8 @@ plot.SK.timing <- ggplot(witset.daily[witset.daily$Species %in% "SK",])+
   theme(axis.text.x = element_text(angle=45, hjust=1))+
   labs(x="Date",y="Daily Catch of Sockeye",title="Daily Catch of Sockeye Campground+Canyon")
 plot.SK.timing
-ggsave(plot = plot.SK.timing, filename = "plot.SK.timing19-24.png",device = "png",
-       width = 10, height = 5)
+# ggsave(plot = plot.SK.timing, filename = "plot.SK.timing19-24.png",device = "png",
+#        width = 10, height = 5)
 
 plot.CO.timing <- ggplot(witset.daily[witset.daily$Species %in% "CO",])+
   # geom_line(aes(x=as_date(yday(Sample_Date)-1,origin=ymd("2024-01-01")), y=total.daily),
@@ -2668,8 +2950,8 @@ plot.CO.timing <- ggplot(witset.daily[witset.daily$Species %in% "CO",])+
   theme(axis.text.x = element_text(angle=45, hjust=1))+
   labs(x="Date",y="Daily Catch of Coho",title="Daily Catch of Coho Campground+Canyon")
 plot.CO.timing
-ggsave(plot = plot.CO.timing, filename = "plot.CO.timing19-24.png",device = "png",
-       width = 10, height = 5)
+# ggsave(plot = plot.CO.timing, filename = "plot.CO.timing19-24.png",device = "png",
+#        width = 10, height = 5)
 
 # 
 # ggplot(witset.daily[witset.daily$Species %in% "CH",])+
