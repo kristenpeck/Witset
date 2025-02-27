@@ -37,61 +37,61 @@ ct <- ifelse(grepl("^AppliedColor2", nms)|grepl("^Recaptured.Color2", nms), "tex
                     "numeric","guess"))
 
 
-witset.raw.upto22 <- rbind(read_excel("Tag_Data_Sockeye.xlsx",
+witset.raw.upto22 <- rbind(read_excel("./data/Tag_Data_Sockeye.xlsx",
                                       .name_repair="universal",col_types = ct),
-                          read_excel("Tag_Data_Coho.xlsx",
+                          read_excel("./data/Tag_Data_Coho.xlsx",
                                      .name_repair="universal",col_types = ct),
-                          read_excel("Tag_Data_Chinook.xlsx",
+                          read_excel("./data/Tag_Data_Chinook.xlsx",
                                      .name_repair="universal",col_types = ct),
-                          read_excel("Tag_Data_Steelhead.xlsx",
+                          read_excel("./data/Tag_Data_Steelhead.xlsx",
                                      .name_repair="universal",col_types = ct)) %>% 
-  left_join(read_excel("Tag_Data_Sample_Dates.xlsx",.name_repair="universal"), by="Sample_Id")
+  left_join(read_excel("./data/Tag_Data_Sample_Dates.xlsx",.name_repair="universal"), by="Sample_Id")
 
 # nms.eff <- names(read_excel("Sampling_effort.xlsx", n_max = 0))
 # ct.eff <- ifelse(grepl("^start_time", nms.eff), "datetime", 
 #              ifelse(grepl("^end_time", nms.eff), "datetime","guess"))
 
-samplingeffort22 <- read_excel("Sampling_effort.xlsx",.name_repair="universal") %>% 
-  left_join(read_excel("Tag_Data_Sample_Dates.xlsx",.name_repair="universal"), 
+samplingeffort22 <- read_excel("./data/Sampling_effort.xlsx",.name_repair="universal") %>% 
+  left_join(read_excel("./data/Tag_Data_Sample_Dates.xlsx",.name_repair="universal"), 
             by=c("sample_ID"="Sample_Id"))
 
 
 
 # from db v3: 2023 
 
-witset.raw.upto23 <- rbind(read_excel("Tag_Data_Sockeye2023.xlsx",
+witset.raw.upto23 <- rbind(read_excel("./data/Tag_Data_Sockeye2023.xlsx",
                                       .name_repair="universal",col_types = ct),
-                           read_excel("Tag_Data_Coho2023.xlsx",
+                           read_excel("./data/Tag_Data_Coho2023.xlsx",
                                       .name_repair="universal",col_types = ct),
-                           read_excel("Tag_Data_Chinook2023.xlsx",
+                           read_excel("./data/Tag_Data_Chinook2023.xlsx",
                                       .name_repair="universal",col_types = ct),
-                           read_excel("Tag_Data_Steelhead2023.xlsx",
+                           read_excel("./data/Tag_Data_Steelhead2023.xlsx",
                                       .name_repair="universal",col_types = ct)) %>% 
-  left_join(read_excel("Tag_Data_Sample_Dates2023.xlsx",.name_repair="universal"), by="Sample_Id")
+  left_join(read_excel("./data/Tag_Data_Sample_Dates2023.xlsx",.name_repair="universal"), by="Sample_Id")
 
-samplingeffort23 <- read_excel("Sampling_effort2023.xlsx",.name_repair="universal") %>% 
-  left_join(read_excel("Tag_Data_Sample_Dates2023.xlsx",.name_repair="universal"), by=c("sample_ID"="Sample_Id"))
+samplingeffort23 <- read_excel("./data/Sampling_effort2023.xlsx",.name_repair="universal") %>% 
+  left_join(read_excel("./data/Tag_Data_Sample_Dates2023.xlsx",.name_repair="universal"), by=c("sample_ID"="Sample_Id"))
 
 
 
 
 #do not yet have raw data for QAQC:
-witset.raw.upto24 <- rbind(read_excel("Tag_Data_Sockeye2024.xlsx",
+witset.raw.upto24 <- rbind(read_excel("./data/Tag_Data_Sockeye2024.xlsx",
                                       .name_repair="universal",col_types = ct),
-                           read_excel("Tag_Data_Coho2024.xlsx",
+                           read_excel("./data/Tag_Data_Coho2024.xlsx",
                                       .name_repair="universal",col_types = ct),
-                           read_excel("Tag_Data_Chinook2024.xlsx",
+                           read_excel("./data/Tag_Data_Chinook2024.xlsx",
                                       .name_repair="universal",col_types = ct),
-                           read_excel("Tag_Data_Steelhead2024.xlsx",
+                           read_excel("./data/Tag_Data_Steelhead2024.xlsx",
                                       .name_repair="universal",col_types = ct))%>%
-  left_join(read_excel("Tag_Data_Sample_Dates2024.xlsx",.name_repair="universal"),
+  left_join(read_excel("./data/Tag_Data_Sample_Dates2024.xlsx",.name_repair="universal"),
             by="Sample_Id") %>%
   filter(sample_year %in% 2024)
   
 
 
-samplingeffort24 <- read_excel("Sampling_effort2024.xlsx",.name_repair="universal") %>% 
-  left_join(read_excel("Tag_Data_Sample_Dates2024.xlsx",.name_repair="universal"), 
+samplingeffort24 <- read_excel("./data/Sampling_effort2024.xlsx",.name_repair="universal") %>% 
+  left_join(read_excel("./data/Tag_Data_Sample_Dates2024.xlsx",.name_repair="universal"), 
             by=c("sample_ID"="Sample_Id")) %>% 
   filter(sample_year %in% 2024)
 
@@ -839,14 +839,14 @@ witset %>%
 #### Nanika data ####
 # ###
 
-nanikaswim <- read_excel("NanikaSnorkel.xlsx",.name_repair = "universal") %>% 
+nanikaswim <- read_excel("./data/NanikaSnorkel.xlsx",.name_repair = "universal") %>% 
   select(year=Year, nanika.counted=total.sockeye.counted,
          nanika.tags=total.tags.observed) %>% 
   mutate(Species = "SK")
 
 unique(nanikaswim$year)
 
-nanika.aerial.peak <- read_excel("moricetown sockeye tagging estimates_v3-copy-5-Feb-2025.xlsx",
+nanika.aerial.peak <- read_excel("./data/moricetown sockeye tagging estimates_v3-copy-5-Feb-2025.xlsx",
                                  sheet="SKCompareEstimates", .name_repair = "universal")
 str(nanika.aerial.peak)
 
@@ -1081,14 +1081,14 @@ plot.CO.daily
 
 
 
-nms <- names(read_excel("TobogganFenceData_MASTER-copy26-Feb-2025.xlsx", 
+nms <- names(read_excel("./data/TobogganFenceData_MASTER-copy26-Feb-2025.xlsx", 
                         sheet = "IndividualFish",n_max = 0))
 ct <- ifelse(grepl("^poh_length_mm", nms)|grepl("^total", nms)|grepl("^recap_tag_number", nms), "numeric",
              ifelse(grepl("^recap_caudal_punch",nms),"text",
                     ifelse(grepl("^fumble_fish",nms),"logical","guess")))
 
 
-tobog.raw <- read_excel("TobogganFenceData_MASTER-copy26-Feb-2025.xlsx",
+tobog.raw <- read_excel("./data/TobogganFenceData_MASTER-copy26-Feb-2025.xlsx",
                     sheet = "IndividualFish", col_types = ct) %>% 
   filter(species %in% "co") %>% 
   mutate(date = as_date(date), julian = yday(date), 
@@ -1130,7 +1130,7 @@ tobog <- tobog.raw %>%
 
 str(tobog)
 
-tobog.yearly.sum <- read_excel("Toboggan-YearSummaries-copy24-Dec-2024.xlsx",
+tobog.yearly.sum <- read_excel("./data/Toboggan-YearSummaries-copy24-Dec-2024.xlsx",
                                sheet="TobogganFence")
 str(tobog.yearly.sum)
 
